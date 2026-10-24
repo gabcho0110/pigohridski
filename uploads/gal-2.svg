@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6efe1"/>
+      <stop offset="1" stop-color="#e9dcc4"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b4a7d"/>
+      <stop offset="1" stop-color="#0b2b4f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect x="46" y="46" width="1108" height="808" fill="none" stroke="#c19a45" stroke-opacity=".35" stroke-width="2"/>
+
+  <g fill="#0b2b4f" opacity=".9">
+    <rect x="150" y="300" width="230" height="150" rx="8"/>
+    <rect x="485" y="300" width="230" height="150" rx="8"/>
+    <rect x="820" y="300" width="230" height="150" rx="8"/>
+  </g>
+  <g fill="#f6efe1" opacity=".92">
+    <rect x="170" y="320" width="190" height="110" rx="4"/>
+    <rect x="505" y="320" width="190" height="110" rx="4"/>
+    <rect x="840" y="320" width="190" height="110" rx="4"/>
+  </g>
+  <g stroke="#c19a45" stroke-width="5" opacity=".8">
+    <path d="M196 350h60M196 376h100M196 402h44"/>
+    <path d="M531 350h100M531 376h54M531 402h84"/>
+    <path d="M866 350h48M866 376h92M866 402h64"/>
+  </g>
+  <g fill="#0b2b4f" opacity=".82">
+    <rect x="252" y="450" width="26" height="46"/>
+    <rect x="587" y="450" width="26" height="46"/>
+    <rect x="922" y="450" width="26" height="46"/>
+  </g>
+  <g fill="#e4d5b9">
+    <rect x="130" y="496" width="270" height="18" rx="6"/>
+    <rect x="465" y="496" width="270" height="18" rx="6"/>
+    <rect x="800" y="496" width="270" height="18" rx="6"/>
+  </g>
+  <g fill="#0b2b4f" opacity=".14">
+    <rect x="130" y="514" width="270" height="150"/>
+    <rect x="465" y="514" width="270" height="150"/>
+    <rect x="800" y="514" width="270" height="150"/>
+  </g>
+  <g fill="#c19a45" opacity=".9">
+    <rect x="520" y="700" width="160" height="12" rx="6"/>
+    <rect x="556" y="712" width="88" height="46" rx="6"/>
+  </g>
+
+</svg>

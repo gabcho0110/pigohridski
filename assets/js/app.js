@@ -1,0 +1,822 @@
+/* ==========================================================================
+   ПИГ „Св. Климент Охридски“ – София
+   Логика на публичния сайт (рутер, изгледи, галерия)
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var C = window.PIG_CONTENT || {};
+  var S = C.site || {};
+  var BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+
+  /* ------------------------------------------------------------------ utils */
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function isMedia(v) { return /^media\/[A-Za-z0-9_-]+$/.test(String(v || '')); }
+
+  /* изображение: относителен път или запис в RTDB (media/<id>) */
+  function imgTag(value, alt, extra) {
+    if (!value) return '';
+    extra = extra || '';
+    if (isMedia(value)) {
+      return '<img data-media="' + esc(String(value).slice(6)) + '" src="' + BLANK + '" alt="' + esc(alt || '') + '"' + extra + '>';
+    }
+    return '<img src="' + esc(value) + '" alt="' + esc(alt || '') + '"' + extra + '>';
+  }
+
+  function resolveImages(root) {
+    if (!window.PIG || !PIG.loadMedia) return;
+    var imgs = root.querySelectorAll('img[data-media]');
+    Array.prototype.forEach.call(imgs, function (img) {
+      PIG.loadMedia(img.getAttribute('data-media')).then(function (u) {
+        if (u) img.src = u;
+      });
+    });
+  }
+
+  var MONTHS = ['януари', 'февруари', 'март', 'април', 'май', 'юни', 'юли',
+    'август', 'септември', 'октомври', 'ноември', 'декември'];
+  var MONTHS_SHORT = ['ян.', 'февр.', 'март', 'апр.', 'май', 'юни', 'юли',
+    'авг.', 'септ.', 'окт.', 'ноем.', 'дек.'];
+
+  function parseDate(iso) {
+    if (!iso) return null;
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+    if (!m) {
+      var d0 = new Date(iso);
+      return isNaN(d0) ? null : d0;
+    }
+    return new Date(+m[1], +m[2] - 1, +m[3]);
+  }
+
+  function fmtDate(iso) {
+    var d = parseDate(iso);
+    if (!d) return '';
+    return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  function fmtShort(iso) {
+    var d = parseDate(iso);
+    if (!d) return { dd: '', mm: '' };
+    return { dd: String(d.getDate()), mm: MONTHS_SHORT[d.getMonth()] };
+  }
+
+  function initials(name) {
+    return String(name || '').trim().split(/\s+/).slice(0, 2)
+      .map(function (w) { return w.charAt(0).toUpperCase(); }).join('');
+  }
+
+  function avatar(name, photo, size) {
+    var cls = 'avatar' + (size ? ' avatar--' + size : '');
+    if (photo) {
+      return '<span class="' + cls + '">' + imgTag(photo, name, ' loading="lazy"') + '</span>';
+    }
+    return '<span class="' + cls + '" aria-hidden="true">' + esc(initials(name)) + '</span>';
+  }
+
+  /* ------------------------------------------------------- minimal markdown */
+  function inlineMd(t) {
+    return esc(t)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[\s(–—])\*([^*\n]+)\*(?=[\s.,;:!?)]|$)/g, '$1<em>$2</em>')
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }
+
+  function md(src) {
+    var blocks = String(src == null ? '' : src).split(/\n{2,}/);
+    return blocks.map(function (raw) {
+      var b = raw.trim();
+      if (!b) return '';
+      var lines = b.split('\n');
+      var isList = lines.every(function (l) { return /^\s*[-*]\s+/.test(l); });
+      if (isList) {
+        return '<ul>' + lines.map(function (l) {
+          return '<li>' + inlineMd(l.replace(/^\s*[-*]\s+/, '')) + '</li>';
+        }).join('') + '</ul>';
+      }
+      if (/^#{2,3}\s+/.test(b) && lines.length === 1) {
+        return '<h3>' + inlineMd(b.replace(/^#{2,3}\s+/, '')) + '</h3>';
+      }
+      return '<p>' + lines.map(inlineMd).join('<br>') + '</p>';
+    }).join('\n');
+  }
+
+  /* ------------------------------------------------------------- components */
+  function pageHead(title, lead, crumb) {
+    return '' +
+      '<div class="page-head"><div class="wrap">' +
+        (crumb ? '<div class="crumbs" style="padding-top:0;margin-bottom:10px">' + crumb + '</div>' : '') +
+        '<h1>' + esc(title) + '</h1>' +
+        (lead ? '<p>' + esc(lead) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function newsCard(n, feature) {
+    var st = fmtShort(n.date);
+    var visual = n.image
+      ? '<div class="news-thumb">' + imgTag(n.image, n.title, ' loading="lazy"') + '</div>'
+      : '<div class="news-stamp"><span class="dd">' + esc(st.dd) + '</span><span class="mm">' + esc(st.mm) + '</span></div>';
+    return '' +
+      '<article class="news-card' + (feature ? ' news-card--feature' : '') + (n.image ? '' : ' news-card--text') + ' reveal">' +
+        visual +
+        '<div class="news-body">' +
+          '<div class="news-meta">' +
+            (n.category ? '<span class="tag">' + esc(n.category) + '</span>' : '') +
+            '<span class="news-date">' + esc(fmtDate(n.date)) + '</span>' +
+          '</div>' +
+          '<h3><a href="#/novina/' + encodeURIComponent(n.id) + '">' + esc(n.title) + '</a></h3>' +
+          '<p>' + esc(n.excerpt || '') + '</p>' +
+          '<a class="link-arrow" href="#/novina/' + encodeURIComponent(n.id) + '">Прочети <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
+        '</div>' +
+      '</article>';
+  }
+
+  function sortedNews() {
+    return (C.news || []).slice().sort(function (a, b) {
+      if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
+  }
+
+  function statStrip() {
+    var stats = S.stats || [];
+    if (!stats.length) return '';
+    return '<div class="wrap"><div class="stats">' + stats.map(function (s) {
+      return '<div class="stat"><span class="value">' + esc(s.value) + '</span><span class="label">' + esc(s.label) + '</span></div>';
+    }).join('') + '</div></div>';
+  }
+
+  function factsCard() {
+    var cls = C.classes || [];
+    var profiles = {};
+    cls.forEach(function (c) { if (c.profile) profiles[c.profile] = 1; });
+    var students = cls.reduce(function (s, c) { return s + (Number(c.students) || 0); }, 0);
+
+    function byLabel(re) {
+      var list = S.stats || [];
+      for (var i = 0; i < list.length; i++) {
+        if (re.test(String(list[i].label || ''))) return list[i].value;
+      }
+      return null;
+    }
+
+    var rows = [];
+    if (S.founded) rows.push(['Основаване', S.founded]);
+    if (Object.keys(profiles).length) rows.push(['Профили', Object.keys(profiles).length]);
+    rows.push(['Паралелки', byLabel(/паралелк/i) || cls.length || '—']);
+    rows.push(['Ученици', byLabel(/учениц/i) || students || '—']);
+    var teachers = byLabel(/учител/i);
+    if (teachers) rows.push(['Учители', teachers]);
+    if (S.address) rows.push(['Адрес', S.address.replace(/^гр\.\s*/, '')]);
+
+    return '<div class="facts">' +
+      '<h3>Училището накратко</h3>' +
+      '<dl>' + rows.map(function (r) {
+        return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>';
+      }).join('') + '</dl>' +
+      '</div>';
+  }
+
+  function ctaBand() {
+    var a = S.admission || {};
+    return '' +
+      '<section class="section section--tight"><div class="wrap"><div class="cta-band reveal">' +
+        '<div>' +
+          '<h2>Прием ' + esc(a.year || '') + '</h2>' +
+          '<p>Четири паралелки, 104 места. Вижте сроковете и необходимите документи.</p>' +
+        '</div>' +
+        '<a class="btn btn-gold" href="#/priem">Условия за прием <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
+      '</div></div></section>';
+  }
+
+  /* ------------------------------------------------------------------ views */
+  function viewHome() {
+    var news = sortedNews().slice(0, 3);
+    var about = S.about || {};
+    var dir = about.director || {};
+    var gal = (C.gallery || []).slice(0, 3);
+
+    var profiles = {};
+    (C.classes || []).forEach(function (c) {
+      if (!c.profile) return;
+      profiles[c.profile] = profiles[c.profile] || { name: c.profile, classes: 0, students: 0, desc: c.description };
+      profiles[c.profile].classes++;
+      profiles[c.profile].students += Number(c.students) || 0;
+    });
+    var profileList = Object.keys(profiles).map(function (k) { return profiles[k]; });
+
+    return '' +
+      /* hero */
+      '<section class="hero">' +
+        '<div class="wrap">' +
+          '<div>' +
+            (S.heroKicker ? '<div class="hero-kicker"><span class="dot"></span>' + esc(S.heroKicker) + '</div>' : '') +
+            '<h1>' + esc(S.heroTitle || '') + '</h1>' +
+            '<p class="hero-lead">' + esc(S.heroLead || '') + '</p>' +
+            '<div class="hero-actions">' +
+              '<a class="btn btn-primary" href="#/priem">Прием ' + esc((S.admission || {}).year || '') + '</a>' +
+              '<a class="btn btn-ghost" href="#/za-uchilishteto">За училището</a>' +
+            '</div>' +
+            (S.motto ? '<div class="hero-motto">' + esc(S.motto) + '</div>' : '') +
+          '</div>' +
+          '<div class="hero-figure">' +
+            '<div class="hero-frame">' +
+              imgTag(S.heroImage, 'Сградата на училището', ' fetchpriority="high"') +
+            '</div>' +
+            '<div class="hero-badge">' +
+              '<span class="num">' + esc(String(S.founded || '')) + '</span>' +
+              '<span class="lbl">година на основаване<br>' +
+              (S.founded ? (new Date().getFullYear() - Number(S.founded)) + ' години традиция' : '') + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</section>' +
+
+      /* stats */
+      '<section class="section--tight" style="padding:38px 0 0">' + statStrip() + '</section>' +
+
+      /* news */
+      '<section class="section"><div class="wrap">' +
+        '<div class="section-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;max-width:none">' +
+          '<div><span class="kicker">Новини</span><h2 style="margin-bottom:0">Какво се случва в училище</h2></div>' +
+          '<a class="link-arrow" href="#/novini" style="margin-bottom:6px">Всички новини <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
+        '</div>' +
+        (news.length
+          ? '<div class="grid grid-3">' + news.map(function (n) { return newsCard(n, false); }).join('') + '</div>'
+          : '<div class="empty">Все още няма публикувани новини.</div>') +
+      '</div></section>' +
+
+      /* about + director */
+      '<section class="section section--cream"><div class="wrap">' +
+        '<div class="about-grid">' +
+          '<div class="reveal">' +
+            '<span class="kicker">За училището</span>' +
+            '<h2>' + esc(about.title || '') + '</h2>' +
+            '<p class="about-lead">' + esc(about.lead || '') + '</p>' +
+            '<div class="prose" style="font-size:15.5px">' + md(String(about.body || '').split('\n\n').slice(0, 2).join('\n\n')) + '</div>' +
+            '<a class="link-arrow" href="#/za-uchilishteto">Научете повече <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
+          '</div>' +
+          '<div>' +
+            '<div class="director-card reveal">' +
+              '<div class="who">' +
+                avatar(dir.name, dir.photo, 'lg') +
+                '<div><h3>' + esc(dir.name || '') + '</h3><span>' + esc(dir.role || '') + '</span></div>' +
+              '</div>' +
+              '<div class="prose" style="font-size:14.5px;color:rgba(255,255,255,.76)">' + md(dir.greeting || '') + '</div>' +
+              '<div class="sign">' + esc(dir.name || '') + '</div>' +
+            '</div>' +
+            factsCard() +
+          '</div>' +
+        '</div>' +
+      '</div></section>' +
+
+      /* profiles */
+      (profileList.length ?
+      '<section class="section"><div class="wrap">' +
+        '<div class="section-head section-head--center"><span class="kicker">Обучение</span><h2>Четири посоки, една основа</h2>' +
+        '<p>Профилите се избират при кандидатстване в осми клас. Всяка паралелка има класен ръководител и свой кабинет.</p></div>' +
+        '<div class="grid grid-4">' + profileList.map(function (p) {
+          return '<div class="value-card reveal">' +
+            '<span class="idx">' + esc(p.classes) + ' паралелки · ' + esc(p.students) + ' ученици</span>' +
+            '<h3>' + esc(p.name) + '</h3>' +
+            '<p>' + esc(p.desc || '') + '</p>' +
+          '</div>';
+        }).join('') + '</div>' +
+        '<div style="text-align:center;margin-top:34px"><a class="btn btn-ghost" href="#/paralelki">Всички паралелки</a></div>' +
+      '</div></section>' : '') +
+
+      /* gallery strip */
+      (gal.length ?
+      '<section class="section section--cream"><div class="wrap">' +
+        '<div class="section-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;max-width:none">' +
+          '<div><span class="kicker">Галерия</span><h2 style="margin-bottom:0">Училището в кадри</h2></div>' +
+          '<a class="link-arrow" href="#/galeria" style="margin-bottom:6px">Цялата галерия <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
+        '</div>' +
+        '<div class="gallery-grid">' + gal.map(function (g) {
+          return '<button class="gallery-item reveal" data-full="' + esc(g.image) + '" data-cap="' + esc(g.title) + '" aria-label="' + esc(g.title) + '">' +
+            imgTag(g.image, g.title, ' loading="lazy"') +
+            '<figcaption>' + esc(g.title) + '</figcaption></button>';
+        }).join('') + '</div>' +
+      '</div></section>' : '') +
+
+      ctaBand();
+  }
+
+  function viewAbout() {
+    var a = S.about || {};
+    var dir = a.director || {};
+    var bells = S.bells || [];
+    var pages = (C.pages || []).filter(function (p) { return p.slug === 'klubove' || p.slug === 'uchenicheski-savet'; });
+
+    return pageHead('За училището', S.tagline || '', '<a href="#/">Начало</a><span>/</span>За училището') +
+      '<section class="section"><div class="wrap">' +
+        '<div class="about-grid">' +
+          '<div>' +
+            '<p class="about-lead">' + esc(a.lead || '') + '</p>' +
+            '<div class="prose">' + md(a.body || '') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="director-card reveal">' +
+              '<div class="who">' + avatar(dir.name, dir.photo, 'lg') +
+                '<div><h3>' + esc(dir.name || '') + '</h3><span>' + esc(dir.role || '') + '</span></div></div>' +
+              '<div class="prose" style="font-size:14.6px;color:rgba(255,255,255,.78)">' + md(dir.greeting || '') + '</div>' +
+            '</div>' +
+            factsCard() +
+          '</div>' +
+        '</div>' +
+      '</div></section>' +
+
+      (bells.length ?
+      '<section class="section section--tight section--white"><div class="wrap">' +
+        '<div class="section-head"><span class="kicker">Разписание</span><h2>График на звънците</h2>' +
+        '<p>Седем учебни часа дневно. Междучасията са с различна дължина — заради обедната почивка след четвъртия час.</p></div>' +
+        '<div class="bells-strip">' + bells.map(function (b) {
+          return '<div class="bell-cell"><span class="bn">' + esc(b.n) + '</span>' +
+            '<span class="bt">' + esc(b.from) + '</span><span class="bd">–</span><span class="bt">' + esc(b.to) + '</span></div>';
+        }).join('') + '</div>' +
+      '</div></section>' : '') +
+
+      ((a.values || []).length ?
+      '<section class="section section--cream"><div class="wrap">' +
+        '<div class="section-head"><span class="kicker">Принципи</span><h2>На какво държим</h2></div>' +
+        '<div class="grid grid-2">' + a.values.map(function (v, i) {
+          return '<div class="value-card reveal"><span class="idx">0' + (i + 1) + '</span><h3>' + esc(v.title) + '</h3><p>' + esc(v.text) + '</p></div>';
+        }).join('') + '</div>' +
+      '</div></section>' : '') +
+
+      (pages.length ?
+      '<section class="section"><div class="wrap">' +
+        '<div class="section-head"><span class="kicker">Училищен живот</span><h2>Извън часовете</h2></div>' +
+        '<div class="grid grid-2">' + pages.map(function (p) {
+          return '<a class="value-card reveal" href="#/stranica/' + encodeURIComponent(p.slug) + '" style="display:block;color:inherit">' +
+            '<h3>' + esc(p.title) + '</h3>' +
+            '<p>' + esc(String(p.body || '').replace(/[*#\[\]]/g, '').split('\n')[0].slice(0, 150)) + '…</p>' +
+            '<span class="link-arrow" style="margin-top:14px">Виж <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></span>' +
+          '</a>';
+        }).join('') + '</div>' +
+      '</div></section>' : '') +
+
+      ctaBand();
+  }
+
+  function viewAdmission() {
+    var a = S.admission || {};
+    var faq = S.faq || [];
+    return pageHead('Прием ' + (a.year || ''), 'Всичко необходимо за кандидатстване в осми клас — срокове, документи и отговори на най-честите въпроси.',
+      '<a href="#/">Начало</a><span>/</span>Прием') +
+      '<section class="section"><div class="wrap">' +
+        '<div class="grid grid-2" style="gap:52px;align-items:start">' +
+          '<div>' +
+            '<p class="about-lead">' + esc(a.intro || '') + '</p>' +
+            '<h3 style="margin-top:34px">Как протича приемът</h3>' +
+            '<div class="steps">' + (a.steps || []).map(function (s) {
+              return '<div class="step reveal"><span class="no"></span><div><h3>' + esc(s.title) + '</h3><p>' + esc(s.text) + '</p></div></div>';
+            }).join('') + '</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="value-card" style="padding:30px">' +
+              '<h3 style="margin-bottom:18px">Важни дати</h3>' +
+              '<ul class="dates-list">' + (a.dates || []).map(function (d) {
+                return '<li><span class="dt">' + esc(d.date) + '</span><span>' + esc(d.text) + '</span></li>';
+              }).join('') + '</ul>' +
+            '</div>' +
+            '<div class="value-card" style="padding:30px;margin-top:22px">' +
+              '<h3 style="margin-bottom:16px">Необходими документи</h3>' +
+              '<ul style="font-size:14.6px;color:var(--ink-500);margin:0;padding-left:18px">' +
+              (a.documents || []).map(function (d) { return '<li style="margin-bottom:8px">' + esc(d) + '</li>'; }).join('') +
+              '</ul>' +
+              (a.contact ? '<p style="font-size:13px;color:var(--ink-400);margin:18px 0 0;padding-top:16px;border-top:1px dashed var(--line)">' + esc(a.contact) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div></section>' +
+
+      (faq.length ?
+      '<section class="section section--cream"><div class="wrap">' +
+        '<div class="section-head"><span class="kicker">Въпроси</span><h2>Често задавани въпроси</h2></div>' +
+        '<div class="faq">' + faq.map(function (f) {
+          return '<details><summary>' + esc(f.q) + '</summary><div class="a">' + esc(f.a) + '</div></details>';
+        }).join('') + '</div>' +
+      '</div></section>' : '') +
+
+      ctaBand();
+  }
+
+  function viewNews() {
+    var list = sortedNews();
+    return pageHead('Новини', 'Съобщения, постижения и събития от училищния живот.',
+      '<a href="#/">Начало</a><span>/</span>Новини') +
+      '<section class="section"><div class="wrap">' +
+        (list.length ?
+          '<div class="news-list">' + list.map(function (n) {
+            var d = parseDate(n.date);
+            return '<article class="news-row reveal">' +
+              '<div class="d">' + (d ? d.getDate() + ' ' + MONTHS[d.getMonth()] : '') + '<small>' + (d ? d.getFullYear() : '') + '</small></div>' +
+              '<div>' +
+                (n.category ? '<span class="tag" style="margin-bottom:8px;display:inline-block">' + esc(n.category) + '</span>' : '') +
+                '<h3><a href="#/novina/' + encodeURIComponent(n.id) + '">' + esc(n.title) + '</a></h3>' +
+                '<p>' + esc(n.excerpt || '') + '</p>' +
+              '</div>' +
+              '<a class="link-arrow" href="#/novina/' + encodeURIComponent(n.id) + '" aria-label="Прочети">' +
+                '<svg width="18" height="18" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
+            '</article>';
+          }).join('') + '</div>'
+          : '<div class="empty">Все още няма публикувани новини.</div>') +
+      '</div></section>';
+  }
+
+  function viewArticle(id) {
+    var n = (C.news || []).filter(function (x) { return x.id === id; })[0];
+    if (!n) return viewNotFound();
+    var others = sortedNews().filter(function (x) { return x.id !== id; }).slice(0, 3);
+    return '<div class="page-head" style="padding-bottom:34px"><div class="wrap">' +
+        '<div class="crumbs" style="padding-top:0;margin-bottom:16px"><a href="#/">Начало</a><span>/</span><a href="#/novini">Новини</a><span>/</span>' + esc(n.title) + '</div>' +
+        '<div class="article-head"><h1>' + esc(n.title) + '</h1>' +
+          '<div class="article-meta">' +
+            (n.category ? '<span class="tag tag--gold">' + esc(n.category) + '</span>' : '') +
+            '<span>' + esc(fmtDate(n.date)) + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</div></div>' +
+      '<section class="section" style="padding-top:40px"><div class="wrap">' +
+        (n.image ? '<div class="article-cover">' + imgTag(n.image, n.title) + '</div>' : '') +
+        '<div class="prose">' + md(n.body || n.excerpt || '') + '</div>' +
+        '<div style="margin-top:40px;padding-top:26px;border-top:1px solid var(--line)">' +
+          '<a class="link-arrow" href="#/novini">← Всички новини</a>' +
+        '</div>' +
+      '</div></section>' +
+      (others.length ?
+      '<section class="section section--cream"><div class="wrap">' +
+        '<div class="section-head"><span class="kicker">Още</span><h2>Други новини</h2></div>' +
+        '<div class="grid grid-3">' + others.map(function (x) { return newsCard(x, false); }).join('') + '</div>' +
+      '</div></section>' : '');
+  }
+
+  function viewClasses() {
+    var list = C.classes || [];
+    return pageHead('Паралелки и профили', 'Учебната 2026/2027 година в 24 паралелки. По-долу са публикуваните класове, техните профили и класни ръководители.',
+      '<a href="#/">Начало</a><span>/</span>Паралелки') +
+      '<section class="section"><div class="wrap">' +
+        (list.length ?
+        '<div class="grid grid-3">' + list.map(function (c) {
+          return '<div class="class-card reveal">' +
+            '<div class="top"><span class="cname">' + esc(c.name) + '</span><span class="count">' + esc(c.students || '') + ' ученици</span></div>' +
+            '<span class="profile">' + esc(c.profile || '') + '</span>' +
+            '<p>' + esc(c.description || '') + '</p>' +
+            '<div class="meta"><span>Класен ръководител: ' + esc(c.curator || '—') + '</span><span>' + esc(c.room || '') + '</span></div>' +
+          '</div>';
+        }).join('') + '</div>'
+        : '<div class="empty">Информацията за паралелките предстои да бъде публикувана.</div>') +
+      '</div></section>' + ctaBand();
+  }
+
+  function viewTeachers() {
+    var list = C.teachers || [];
+    return pageHead('Учители', 'Екипът, който стои зад всеки учебен час. Можете да се свържете с всеки учител чрез деловодството.',
+      '<a href="#/">Начало</a><span>/</span>Учители') +
+      '<section class="section"><div class="wrap">' +
+        (list.length ?
+        '<div class="grid grid-2">' + list.map(function (t) {
+          return '<div class="teacher-card reveal">' + avatar(t.name, t.photo) +
+            '<div>' +
+              (t.role ? '<span class="role">' + esc(t.role) + '</span>' : '') +
+              '<h3>' + esc(t.name) + '</h3>' +
+              '<div class="subject">' + esc(t.subject || '') + '</div>' +
+              '<p class="bio">' + esc(t.bio || '') + '</p>' +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div>'
+        : '<div class="empty">Списъкът на учителите предстои да бъде публикуван.</div>') +
+      '</div></section>';
+  }
+
+  function viewGallery() {
+    var list = (C.gallery || []).slice().sort(function (a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
+    return pageHead('Галерия', 'Снимки от празници, пътувания, часове и обикновени дни в училището.',
+      '<a href="#/">Начало</a><span>/</span>Галерия') +
+      '<section class="section"><div class="wrap">' +
+        (list.length ?
+        '<div class="gallery-grid">' + list.map(function (g) {
+          return '<button class="gallery-item reveal" data-full="' + esc(g.image) + '" data-cap="' + esc(g.title) + '" aria-label="' + esc(g.title) + '">' +
+            imgTag(g.image, g.title, ' loading="lazy"') +
+            '<figcaption>' + esc(g.title) + (g.date ? ' · ' + esc(fmtDate(g.date)) : '') + '</figcaption>' +
+          '</button>';
+        }).join('') + '</div>'
+        : '<div class="empty">Все още няма качени снимки.</div>') +
+      '</div></section>';
+  }
+
+  function viewDocuments() {
+    var list = C.documents || [];
+    var cats = {};
+    list.forEach(function (d) {
+      var k = d.category || 'Друго';
+      (cats[k] = cats[k] || []).push(d);
+    });
+    var body = list.length
+      ? Object.keys(cats).map(function (k) {
+          return '<h3 style="margin:38px 0 6px;font-size:1.15rem">' + esc(k) + '</h3>' +
+            '<div class="doc-list">' + cats[k].map(function (d) {
+              var ext = /\.pdf$/i.test(d.url || '') ? 'PDF' : (/\.docx?$/i.test(d.url || '') ? 'DOC' : (/\.html?$/i.test(d.url || '') ? 'HTML' : 'FILE'));
+              var isHtml = /\.html?$/i.test(d.url || '');
+              return '<div class="doc-row reveal">' +
+                '<span class="doc-icon">' + esc(ext) + '</span>' +
+                '<div><h3>' + esc(d.title) + '</h3>' +
+                  '<div class="dmeta"><span class="cat">' + esc(d.category || '') + '</span>' +
+                  (d.date ? '<span>' + esc(fmtDate(d.date)) + '</span>' : '') +
+                  (d.note ? '<span>' + esc(d.note) + '</span>' : '') + '</div></div>' +
+                (d.url
+                  ? '<a class="dl" href="' + esc(d.url) + '" target="_blank" rel="noopener">' + (isHtml ? 'Отвори' : 'Изтегли') + '</a>'
+                  : '<span class="dl" aria-disabled="true">Очаква качване</span>') +
+              '</div>';
+            }).join('') + '</div>';
+        }).join('')
+      : '<div class="empty">Все още няма публикувани документи.</div>';
+
+    return pageHead('Документи', 'Нормативни документи, учебни планове и образци за изтегляне.',
+      '<a href="#/">Начало</a><span>/</span>Документи') +
+      '<section class="section" style="padding-top:34px"><div class="wrap">' +
+        '<div class="prose" style="max-width:70ch;margin-bottom:10px"><p>Всички документи се публикуват в PDF или DOCX формат. Ако не откривате необходим документ, обърнете се към деловодството.</p></div>' +
+        body +
+      '</div></section>';
+  }
+
+  function viewContacts() {
+    var soc = S.social || {};
+    var socialLinks = [
+      ['facebook', 'i-fb', 'Facebook'],
+      ['instagram', 'i-ig', 'Instagram'],
+      ['youtube', 'i-yt', 'YouTube']
+    ].filter(function (s) { return soc[s[0]]; });
+
+    return pageHead('Контакти', 'Намерете ни, обадете се или ни пишете — отговаряме до един учебен ден.',
+      '<a href="#/">Начало</a><span>/</span>Контакти') +
+      '<section class="section"><div class="wrap">' +
+        '<div class="contact-grid">' +
+          '<div>' +
+            '<div class="contact-item"><span class="ic"><svg width="18" height="18"><use href="#i-pin"></use></svg></span>' +
+              '<div><h4>Адрес</h4><div class="v">' + esc(S.address || '') + '</div><div class="n">Център, до метростанция „Сердика“</div></div></div>' +
+            '<div class="contact-item"><span class="ic"><svg width="18" height="18"><use href="#i-phone"></use></svg></span>' +
+              '<div><h4>Телефон</h4><div class="v"><a href="tel:' + esc(String(S.phone || '').replace(/\s/g, '')) + '">' + esc(S.phone || '') + '</a></div>' +
+              '<div class="n">' + esc(S.phoneNote || '') + '</div></div></div>' +
+            '<div class="contact-item"><span class="ic"><svg width="18" height="18"><use href="#i-mail"></use></svg></span>' +
+              '<div><h4>Електронна поща</h4><div class="v"><a href="mailto:' + esc(S.email || '') + '">' + esc(S.email || '') + '</a></div>' +
+              '<div class="n">' + esc(S.emailNote || '') + '</div></div></div>' +
+            '<div class="contact-item"><span class="ic"><svg width="18" height="18"><use href="#i-clock"></use></svg></span>' +
+              '<div><h4>Работно време</h4><div class="v">' + esc(S.workHours || '') + '</div>' +
+              '<div class="n">Дежурен учител приема родители всеки ден до 17:00 ч.</div></div></div>' +
+            (socialLinks.length ? '<div style="margin-top:24px;display:flex;gap:10px">' + socialLinks.map(function (s) {
+              return '<a class="btn btn-ghost btn-sm" href="' + esc(soc[s[0]]) + '" target="_blank" rel="noopener">' +
+                '<svg width="15" height="15" aria-hidden="true"><use href="#' + s[1] + '"></use></svg> ' + s[2] + '</a>';
+            }).join('') + '</div>' : '') +
+          '</div>' +
+          '<div>' +
+            '<div class="map-frame">' + (S.mapEmbed
+              ? '<iframe src="' + esc(S.mapEmbed) + '" title="Карта" loading="lazy"></iframe>'
+              : '<div class="empty" style="border:0">Картата не е конфигурирана.</div>') + '</div>' +
+            (S.mapLink ? '<div style="margin-top:14px"><a class="link-arrow" href="' + esc(S.mapLink) + '" target="_blank" rel="noopener">Отвори в карта <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a></div>' : '') +
+            '<div class="value-card" style="margin-top:26px">' +
+              '<h3 style="font-size:1.02rem">Приемна комисия</h3>' +
+              '<p style="font-size:14px">' + esc((S.admission || {}).contact || '') + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div></section>';
+  }
+
+  function viewPage(slug) {
+    var p = (C.pages || []).filter(function (x) { return x.slug === slug; })[0];
+    if (!p) return viewNotFound();
+    return pageHead(p.title, '', '<a href="#/">Начало</a><span>/</span>' + esc(p.title)) +
+      '<section class="section"><div class="wrap">' +
+        '<div class="prose">' + md(p.body || '') + '</div>' +
+        '<div style="margin-top:36px;padding-top:24px;border-top:1px solid var(--line)"><a class="link-arrow" href="#/za-uchilishteto">← За училището</a></div>' +
+      '</div></section>';
+  }
+
+  function viewNotFound() {
+    return '<section class="section"><div class="wrap" style="text-align:center;padding:80px 0">' +
+      '<span class="kicker" style="justify-content:center">Грешка 404</span>' +
+      '<h1 style="color:var(--navy-800)">Страницата не е намерена</h1>' +
+      '<p style="color:var(--ink-500);max-width:46ch;margin:0 auto 28px">Възможно е адресът да е сгрешен или страницата да е преместена.</p>' +
+      '<a class="btn btn-primary" href="#/">Към началото</a>' +
+      '</div></section>';
+  }
+
+  /* ----------------------------------------------------------------- router */
+  var ROUTES = {
+    '/': { render: viewHome, nav: '/', title: 'Начало' },
+    '/za-uchilishteto': { render: viewAbout, nav: '/za-uchilishteto', title: 'За училището' },
+    '/priem': { render: viewAdmission, nav: '/priem', title: 'Прием' },
+    '/novini': { render: viewNews, nav: '/novini', title: 'Новини' },
+    '/paralelki': { render: viewClasses, nav: '/za-uchilishteto', title: 'Паралелки и профили' },
+    '/uchiteli': { render: viewTeachers, nav: '/za-uchilishteto', title: 'Учители' },
+    '/galeria': { render: viewGallery, nav: '/galeria', title: 'Галерия' },
+    '/dokumenti': { render: viewDocuments, nav: '/za-uchilishteto', title: 'Документи' },
+    '/kontakti': { render: viewContacts, nav: '/kontakti', title: 'Контакти' }
+  };
+
+  function parseHash() {
+    var raw = location.hash.replace(/^#/, '');
+    raw = raw.split('?')[0];
+    if (!raw || raw === '/') return { path: '/', parts: [] };
+    var parts = raw.replace(/^\//, '').split('/').filter(Boolean).map(function (p) {
+      try { return decodeURIComponent(p); } catch (e) { return p; }
+    });
+    return { path: '/' + parts.join('/'), parts: parts };
+  }
+
+  var view = document.getElementById('view');
+
+  function render(keepScroll) {
+    var r = parseHash();
+    var parts = r.parts;
+    var html = '';
+    var navKey = null;
+    var pageTitle = '';
+
+    if (!parts.length) {
+      html = viewHome(); navKey = '/'; pageTitle = 'Начало';
+    } else if (parts[0] === 'novina' && parts[1]) {
+      html = viewArticle(parts[1]); navKey = '/novini'; pageTitle = 'Новина';
+      var art = (C.news || []).filter(function (x) { return x.id === parts[1]; })[0];
+      if (art) pageTitle = art.title;
+    } else if (parts[0] === 'stranica' && parts[1]) {
+      html = viewPage(parts[1]); navKey = '/za-uchilishteto'; pageTitle = 'Страница';
+      var pg = (C.pages || []).filter(function (x) { return x.slug === parts[1]; })[0];
+      if (pg) pageTitle = pg.title;
+    } else if (ROUTES[r.path]) {
+      html = ROUTES[r.path].render(); navKey = ROUTES[r.path].nav; pageTitle = ROUTES[r.path].title;
+    } else {
+      html = viewNotFound(); pageTitle = 'Страницата не е намерена';
+    }
+
+    view.innerHTML = html;
+
+    /* document title */
+    var name = (S.name || 'ПИГ „Св. Климент Охридски“');
+    document.title = (pageTitle === 'Начало' ? name + ' – София' : pageTitle + ' · ' + name);
+
+    /* active nav */
+    Array.prototype.forEach.call(document.querySelectorAll('.main-nav a[data-route]'), function (a) {
+      a.classList.toggle('active', a.getAttribute('data-route') === navKey);
+    });
+
+    /* scroll + reveal */
+    if (!keepScroll) window.scrollTo(0, 0);
+    resolveImages(view);
+    bindReveal();
+    bindGallery();
+    if (document.getElementById('mobileNav').classList.contains('open')) closeNav();
+  }
+
+  /* ------------------------------------------------------------- reveal fx */
+  function bindReveal() {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) {
+      Array.prototype.forEach.call(els, function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    Array.prototype.forEach.call(els, function (el) { io.observe(el); });
+  }
+
+  /* ---------------------------------------------------------------- gallery */
+  var lb = document.getElementById('lightbox');
+  var lbImg = document.getElementById('lbImg');
+  var lbCap = document.getElementById('lbCap');
+  var lbItems = [];
+  var lbIndex = 0;
+
+  function openLb(items, idx) {
+    lbIndex = idx;
+    lb.classList.add('open');
+    document.body.classList.add('nav-open');
+    lbItems = items;
+    Promise.all(items.map(function (it) {
+      if (isMedia(it.src) && window.PIG && PIG.loadMedia) {
+        return PIG.loadMedia(String(it.src).slice(6)).then(function (u) { return u || BLANK; });
+      }
+      return Promise.resolve(it.src);
+    })).then(function (urls) {
+      lbItems = items.map(function (it, i) { return { src: urls[i], cap: it.cap }; });
+      showLb();
+    });
+  }
+  function showLb() {
+    var it = lbItems[lbIndex];
+    if (!it) return;
+    lbImg.src = it.src; lbImg.alt = it.cap || '';
+    lbCap.textContent = it.cap || '';
+  }
+  function closeLb() {
+    lb.classList.remove('open');
+    document.body.classList.remove('nav-open');
+  }
+  function bindGallery() {
+    var btns = document.querySelectorAll('.gallery-item');
+    Array.prototype.forEach.call(btns, function (b, i) {
+      b.addEventListener('click', function () {
+        var items = Array.prototype.map.call(btns, function (x) {
+          return { src: x.getAttribute('data-full'), cap: x.getAttribute('data-cap') };
+        });
+        openLb(items, i);
+      });
+    });
+  }
+  document.getElementById('lbClose').addEventListener('click', closeLb);
+  document.getElementById('lbPrev').addEventListener('click', function () {
+    lbIndex = (lbIndex - 1 + lbItems.length) % lbItems.length; showLb();
+  });
+  document.getElementById('lbNext').addEventListener('click', function () {
+    lbIndex = (lbIndex + 1) % lbItems.length; showLb();
+  });
+  lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLb();
+    if (e.key === 'ArrowLeft') document.getElementById('lbPrev').click();
+    if (e.key === 'ArrowRight') document.getElementById('lbNext').click();
+  });
+
+  /* ------------------------------------------------------------- mobile nav */
+  var mnav = document.getElementById('mobileNav');
+  var toggle = document.getElementById('navToggle');
+  function openNav() {
+    mnav.classList.add('open');
+    document.body.classList.add('nav-open');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+  function closeNav() {
+    mnav.classList.remove('open');
+    document.body.classList.remove('nav-open');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+  toggle.addEventListener('click', function () {
+    mnav.classList.contains('open') ? closeNav() : openNav();
+  });
+  document.getElementById('navClose').addEventListener('click', closeNav);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-close-nav]'), function (a) {
+    a.addEventListener('click', closeNav);
+  });
+
+  /* ----------------------------------------------------------------- footer */
+  var footerBase = null;
+  function fillFooter() {
+    var y = document.getElementById('year');
+    if (y) y.textContent = new Date().getFullYear();
+
+    var soc = S.social || {};
+    var map = [['facebook', 'i-fb', 'Facebook'], ['instagram', 'i-ig', 'Instagram'], ['youtube', 'i-yt', 'YouTube']];
+    var box = document.getElementById('footerSocial');
+    if (box) {
+      box.innerHTML = map.filter(function (m) { return soc[m[0]]; }).map(function (m) {
+        return '<a href="' + esc(soc[m[0]]) + '" target="_blank" rel="noopener" aria-label="' + m[2] + '">' +
+          '<svg width="16" height="16"><use href="#' + m[1] + '"></use></svg></a>';
+      }).join('');
+    }
+
+    var pagesBox = document.getElementById('footerPages');
+    var extra = (C.pages || []).filter(function (p) { return p.inNav; });
+    if (pagesBox) {
+      if (footerBase === null) footerBase = pagesBox.innerHTML;
+      pagesBox.innerHTML = footerBase + extra.map(function (p) {
+        return '<li><a href="#/stranica/' + encodeURIComponent(p.slug) + '">' + esc(p.title) + '</a></li>';
+      }).join('');
+    }
+
+    /* top bar / footer contact values from content */
+    var tb = document.querySelectorAll('.topbar-info span');
+    if (tb.length >= 3) {
+      tb[0].innerHTML = '<svg width="14" height="14"><use href="#i-pin"></use></svg> ' + esc(S.address || '');
+      tb[1].innerHTML = '<svg width="14" height="14"><use href="#i-phone"></use></svg> <a href="tel:' + esc(String(S.phone || '').replace(/\s/g, '')) + '" style="color:inherit">' + esc(S.phone || '') + '</a>';
+      tb[2].innerHTML = '<svg width="14" height="14"><use href="#i-mail"></use></svg> <a href="mailto:' + esc(S.email || '') + '" style="color:inherit">' + esc(S.email || '') + '</a>';
+    }
+  }
+
+  /* ------------------------------------------------------------------- boot */
+  window.addEventListener('hashchange', function () { render(); });
+  fillFooter();
+  render();
+
+  /* съдържание от базата (ако има) – подменя вграденото копие */
+  if (window.PIG && PIG.loadContent) {
+    PIG.loadContent().then(function (data) {
+      if (!data || !data.site) return;
+      C = data;
+      S = data.site || {};
+      fillFooter();
+      render(true);
+    });
+  }
+})();
