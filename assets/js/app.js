@@ -600,6 +600,289 @@
       '</div></section>';
   }
 
+  /* ---------------------------------------------------------------- careers */
+  var CURRENT_YEAR = new Date().getFullYear();
+
+  function minBirthAge() {
+    return Number((S.careers || {}).minAge) || 14;
+  }
+
+  function minBirthYear() {
+    return CURRENT_YEAR - minBirthAge();
+  }
+
+  function activeJobs() {
+    return (C.careers || []).filter(function (j) { return j.active !== false; });
+  }
+
+  function jobCard(j) {
+    var reqs = String(j.requirements || '').split('\n').filter(function (l) { return l.trim(); });
+    return '<article class="job-card reveal">' +
+      '<div class="job-body">' +
+        '<div class="job-top">' +
+          (j.type ? '<span class="tag tag--gold">' + esc(j.type) + '</span>' : '') +
+          (j.deadline ? '<span class="job-deadline">Краен срок: ' + esc(fmtDate(j.deadline)) + '</span>' : '') +
+        '</div>' +
+        '<h3>' + esc(j.title) + '</h3>' +
+        '<div class="job-meta">' +
+          (j.department ? '<span>' + esc(j.department) + '</span>' : '') +
+          (j.location ? '<span>' + esc(j.location) + '</span>' : '') +
+          (j.salary ? '<span>' + esc(j.salary) + '</span>' : '') +
+        '</div>' +
+        '<p class="job-summary">' + esc(j.summary || '') + '</p>' +
+        '<details class="job-more"><summary>Пълно описание и изисквания</summary>' +
+          '<div class="prose" style="font-size:14.8px">' + md(j.description || '') + '</div>' +
+          (reqs.length ? '<h4 class="job-req-title">Изисквания</h4><ul class="job-req">' +
+            reqs.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul>' : '') +
+        '</details>' +
+      '</div>' +
+      '<div class="job-side">' +
+        '<button type="button" class="btn btn-primary btn-sm" data-apply="' + esc(j.id) + '">Кандидатствай</button>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function viewCareers() {
+    var cfg = S.careers || {};
+    var jobs = activeJobs();
+    var maxYear = minBirthYear();
+    var minAge = Number(cfg.minAge) || 14;
+
+    var options = jobs.map(function (j) {
+      return '<option value="' + esc(j.title) + '">' + esc(j.title) + '</option>';
+    }).join('') + '<option value="По собствена инициатива">По собствена инициатива</option>';
+
+    return pageHead('Кариери', cfg.intro || 'Отворени позиции в училището.',
+      '<a href="#/">Начало</a><span>/</span>Кариери') +
+      '<section class="section" style="padding-top:44px"><div class="wrap">' +
+        (jobs.length
+          ? '<div class="jobs">' + jobs.map(jobCard).join('') + '</div>'
+          : '<div class="empty">В момента няма отворени позиции. Можете да кандидатствате по собствена инициатива с формата по-долу.</div>') +
+      '</div></section>' +
+
+      '<section class="section section--cream" id="apply"><div class="wrap">' +
+        '<div class="apply-grid">' +
+          '<div>' +
+            '<span class="kicker">Кандидатстване</span>' +
+            '<h2>Изпратете кандидатура</h2>' +
+            '<p style="color:var(--ink-500);max-width:40ch">Попълнете четири полета — име, телефон, имейл и година на раждане. Кандидатурата пристига директно при нас.</p>' +
+            '<ul class="apply-list">' +
+              '<li>Отговаряме на всеки кандидат в срок до 10 работни дни.</li>' +
+              '<li>Минимална възраст за кандидатстване: <b>' + esc(minAge) + ' години</b>.</li>' +
+              '<li>Данните се използват само за целите на подбора.</li>' +
+            '</ul>' +
+            (cfg.note ? '<p class="small" style="color:var(--ink-400);max-width:40ch;margin-top:18px">' + esc(cfg.note) + '</p>' : '') +
+          '</div>' +
+          '<div class="apply-card">' +
+            '<form id="applyForm" novalidate>' +
+              '<div class="fld-row">' +
+                '<div class="fld">' +
+                  '<label for="apName">Име и фамилия</label>' +
+                  '<input id="apName" name="name" type="text" autocomplete="name" placeholder="Иван Петров">' +
+                  '<span class="err" data-err="name"></span>' +
+                '</div>' +
+                '<div class="fld">' +
+                  '<label for="apYear">Година на раждане</label>' +
+                  '<input id="apYear" name="year" type="number" inputmode="numeric" min="1940" max="' + CURRENT_YEAR + '" placeholder="2005">' +
+                  '<span class="hint" data-hint="year">Родени през ' + maxYear + ' г. или по-рано.</span>' +
+                  '<span class="err" data-err="year"></span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="fld-row">' +
+                '<div class="fld">' +
+                  '<label for="apPhone">Телефон</label>' +
+                  '<input id="apPhone" name="phone" type="tel" autocomplete="tel" placeholder="+359 88 123 4567">' +
+                  '<span class="err" data-err="phone"></span>' +
+                '</div>' +
+                '<div class="fld">' +
+                  '<label for="apEmail">Имейл</label>' +
+                  '<input id="apEmail" name="email" type="email" autocomplete="email" placeholder="ivan@example.com">' +
+                  '<span class="err" data-err="email"></span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="fld">' +
+                '<label for="apPos">Позиция</label>' +
+                '<select id="apPos" name="position">' + options + '</select>' +
+              '</div>' +
+              '<label class="consent">' +
+                '<input type="checkbox" id="apConsent" name="consent">' +
+                '<span>Съгласявам се личните ми данни (име, телефон, имейл и година на раждане) да бъдат обработени за целите на подбора.</span>' +
+              '</label>' +
+              '<span class="err" data-err="consent"></span>' +
+              '<div class="hp" aria-hidden="true"><label>Website<input type="text" id="apSite" tabindex="-1" autocomplete="off"></label></div>' +
+              '<button class="btn btn-primary" type="submit" id="apSubmit" style="width:100%;margin-top:6px">Изпрати кандидатура</button>' +
+              '<div class="form-status" id="apStatus" role="status"></div>' +
+              '<p class="form-note">Полетата са задължителни. Ако имате затруднения, пишете на ' +
+                '<a href="mailto:' + esc(cfg.contactEmail || 'karieri@pig-ohridski.bg') + '">' + esc(cfg.contactEmail || 'karieri@pig-ohridski.bg') + '</a>.</p>' +
+            '</form>' +
+          '</div>' +
+        '</div>' +
+      '</div></section>';
+  }
+
+  function bindCareers() {
+    var form = document.getElementById('applyForm');
+    if (!form) return;
+
+    var status = document.getElementById('apStatus');
+    var btn = document.getElementById('apSubmit');
+
+    function setErr(key, msg) {
+      var el = form.querySelector('[data-err="' + key + '"]');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.classList.toggle('show', !!msg);
+      var field = form.querySelector('[name="' + key + '"]');
+      if (field) field.classList.toggle('invalid', !!msg);
+    }
+
+    function clearErrors() {
+      ['name', 'phone', 'email', 'year', 'consent'].forEach(function (k) { setErr(k, ''); });
+      if (status) { status.className = 'form-status'; status.textContent = ''; }
+    }
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      clearErrors();
+
+      var name = (form.elements.name.value || '').trim().replace(/\s+/g, ' ');
+      var phone = (form.elements.phone.value || '').trim();
+      var email = (form.elements.email.value || '').trim();
+      var year = parseInt(form.elements.year.value, 10);
+      var position = form.elements.position.value;
+      var consent = form.elements.consent.checked;
+      var honeypot = (document.getElementById('apSite').value || '').trim();
+
+      var ok = true;
+      var firstBad = null;
+
+      if (honeypot) { ok = false; } /* бот — спираме тихо */
+
+      if (name.split(' ').filter(function (w) { return w.length >= 2; }).length < 2) {
+        setErr('name', 'Въведете име и фамилия (две имена).'); ok = false; firstBad = firstBad || 'name';
+      }
+      var digits = phone.replace(/[^\d]/g, '');
+      if (!/^[+\d][\d\s()\-]{6,}$/.test(phone) || digits.length < 7 || digits.length > 15) {
+        setErr('phone', 'Въведете валиден телефонен номер, напр. +359 88 123 4567.'); ok = false; firstBad = firstBad || 'phone';
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email)) {
+        setErr('email', 'Въведете валиден имейл адрес.'); ok = false; firstBad = firstBad || 'email';
+      }
+      if (!year || !/^\d{4}$/.test(String(form.elements.year.value).trim())) {
+        setErr('year', 'Въведете година на раждане с четири цифри, напр. 2005.'); ok = false; firstBad = firstBad || 'year';
+      } else if (year < 1940 || year > CURRENT_YEAR) {
+        setErr('year', 'Въведете валидна година на раждане.'); ok = false; firstBad = firstBad || 'year';
+      } else if (CURRENT_YEAR - year < minBirthAge()) {
+        setErr('year', 'Трябва да сте навършили ' + minBirthAge() + ' години, за да кандидатствате. ' +
+          'Приемаме кандидати, родени през ' + minBirthYear() + ' г. или по-рано.');
+        ok = false; firstBad = firstBad || 'year';
+      }
+      if (!consent) {
+        setErr('consent', 'Маркирайте съгласието за обработка на личните данни.'); ok = false; firstBad = firstBad || 'consent';
+      }
+
+      if (!ok) {
+        if (firstBad) {
+          var f = form.querySelector('[name="' + firstBad + '"]');
+          if (f) f.focus();
+        }
+        if (honeypot) showSuccess(); /* бот: показваме успех, но не изпращаме */
+        return;
+      }
+
+      /* ограничение срещу повторни изпращания */
+      var last = Number(localStorage.getItem('pig_apply_ts') || 0);
+      if (Date.now() - last < 45000) {
+        if (status) {
+          status.className = 'form-status err';
+          status.textContent = 'Вече изпратихте кандидатура. Изчакайте минута, преди да опитате отново.';
+        }
+        return;
+      }
+
+      var cfg = S.careers || {};
+      var webhook = cfg.webhook || '';
+      if (!webhook) {
+        if (status) {
+          status.className = 'form-status err';
+          status.textContent = 'Формата не е конфигурирана. Пишете ни на ' + (cfg.contactEmail || 'karieri@pig-ohridski.bg') + '.';
+        }
+        return;
+      }
+
+      var payload = {
+        username: 'ПИГ „Св. Климент Охридски“ · Кариери',
+        allowed_mentions: { parse: [] },
+        embeds: [{
+          title: 'Нова кандидатура · ' + position,
+          color: 731983,
+          fields: [
+            { name: 'Име и фамилия', value: name, inline: true },
+            { name: 'Телефон', value: phone, inline: true },
+            { name: 'Имейл', value: email, inline: true },
+            { name: 'Година на раждане', value: String(year) + ' (' + (CURRENT_YEAR - year) + ' г.)', inline: true },
+            { name: 'Позиция', value: position, inline: true }
+          ],
+          footer: { text: 'pig-ohridski · ' + location.host },
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      btn.disabled = true;
+      btn.textContent = 'Изпращане…';
+
+      fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (r) {
+        if (r.ok) {
+          localStorage.setItem('pig_apply_ts', String(Date.now()));
+          showSuccess();
+          return;
+        }
+        if (r.status === 429) throw new Error('Твърде много заявки. Опитайте отново след минута.');
+        throw new Error('Сървърът върна грешка (' + r.status + ').');
+      }).catch(function (e) {
+        if (status) {
+          status.className = 'form-status err';
+          status.textContent = 'Кандидатурата не беше изпратена: ' + (e.message || 'проблем с връзката') +
+            '. Опитайте отново или ни пишете на ' + (cfg.contactEmail || 'karieri@pig-ohridski.bg') + '.';
+        }
+        btn.disabled = false;
+        btn.textContent = 'Изпрати кандидатура';
+      });
+    });
+
+    function showSuccess() {
+      var name = (form.elements.name.value || '').trim().split(' ')[0];
+      form.innerHTML =
+        '<div class="apply-success">' +
+          '<div class="tick">✓</div>' +
+          '<h3>Благодарим' + (name ? ', ' + esc(name) : '') + '!</h3>' +
+          '<p>Кандидатурата ви пристигна. Ще се свържем с вас на посочения телефон или имейл в срок до 10 работни дни.</p>' +
+          '<a class="btn btn-ghost btn-sm" href="#/karieri">Вижте другите позиции</a>' +
+        '</div>';
+      var card = document.querySelector('.apply-card');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-apply]'), function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-apply');
+        var job = (C.careers || []).filter(function (j) { return j.id === id; })[0];
+        var sel = document.getElementById('apPos');
+        if (job && sel) {
+          for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === job.title) { sel.selectedIndex = i; break; }
+          }
+        }
+        document.getElementById('apply').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(function () { document.getElementById('apName').focus({ preventScroll: true }); }, 420);
+      });
+    });
+  }
+
   function viewNotFound() {
     return '<section class="section"><div class="wrap" style="text-align:center;padding:80px 0">' +
       '<span class="kicker" style="justify-content:center">Грешка 404</span>' +
@@ -619,6 +902,7 @@
     '/uchiteli': { render: viewTeachers, nav: '/za-uchilishteto', title: 'Учители' },
     '/galeria': { render: viewGallery, nav: '/galeria', title: 'Галерия' },
     '/dokumenti': { render: viewDocuments, nav: '/za-uchilishteto', title: 'Документи' },
+    '/karieri': { render: viewCareers, nav: '/karieri', title: 'Кариери' },
     '/kontakti': { render: viewContacts, nav: '/kontakti', title: 'Контакти' }
   };
 
@@ -673,6 +957,7 @@
     resolveImages(view);
     bindReveal();
     bindGallery();
+    bindCareers();
     if (document.getElementById('mobileNav').classList.contains('open')) closeNav();
   }
 

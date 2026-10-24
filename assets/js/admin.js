@@ -175,6 +175,7 @@
     teachers: '<circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-3.6 3.8-5.2 7-5.2s5.8 1.6 7 5.2" fill="none" stroke="currentColor" stroke-width="1.6"/>',
     gallery: '<rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="m5 17 5-5 4 4 3-2 3 3" fill="none" stroke="currentColor" stroke-width="1.6"/>',
     docs: '<path d="M7 3h7l4 4v14H7z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    jobs: '<rect x="3" y="7.5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 7.5V5.6h6v1.9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12.5h18" stroke="currentColor" stroke-width="1.6"/>',
     pages: '<path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 11h7M9 15h7" stroke="currentColor" stroke-width="1.5"/>',
     gear: '<circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.5"/>',
     publish: '<path d="M12 19V6M12 6l-5 5M12 6l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
@@ -189,6 +190,7 @@
     { id: 'teachers', label: 'Учители', icon: 'teachers' },
     { id: 'gallery', label: 'Галерия', icon: 'gallery' },
     { id: 'documents', label: 'Документи', icon: 'docs' },
+    { id: 'careers', label: 'Кариери', icon: 'jobs' },
     { id: 'pages', label: 'Страници', icon: 'pages' },
     { group: 'Настройки на сайта' },
     { id: 'general', label: 'Основни данни', icon: 'gear' },
@@ -414,6 +416,34 @@
         { k: 'body', label: 'Съдържание', type: 'textarea', rows: 14, hint: 'Празен ред = абзац. „- “ в началото на ред = списък. **удебелен**.' }
       ],
       row: function (it) { return { title: it.title || '(без заглавие)', sub: '/stranica/' + (it.slug || '') }; }
+    },
+    careers: {
+      title: 'Обяви за работа', single: 'обява', key: 'careers',
+      blank: function () {
+        return {
+          id: uid('j'), title: '', type: 'Пълен работен ден', department: '', location: 'София',
+          salary: '', deadline: '', active: true, summary: '', description: '', requirements: ''
+        };
+      },
+      fields: [
+        { k: 'title', label: 'Позиция', type: 'text', ph: 'Учител по математика' },
+        { k: 'type', label: 'Вид заетост', type: 'text', half: true, ph: 'Пълен работен ден' },
+        { k: 'department', label: 'Направление', type: 'text', half: true, ph: 'Математика' },
+        { k: 'location', label: 'Място', type: 'text', half: true },
+        { k: 'salary', label: 'Възнаграждение', type: 'text', half: true, ph: '1 600 – 2 100 лв.' },
+        { k: 'deadline', label: 'Краен срок', type: 'date', half: true },
+        { k: 'active', label: 'Видимост', type: 'checkbox', text: 'Обявата е видима на сайта' },
+        { k: 'summary', label: 'Кратко описание', type: 'textarea', rows: 3, hint: 'Показва се в картата на обявата.' },
+        { k: 'description', label: 'Пълно описание', type: 'textarea', rows: 9, hint: 'Празен ред = нов абзац.' },
+        { k: 'requirements', label: 'Изисквания', type: 'textarea', rows: 5, hint: 'Едно изискване на ред.' }
+      ],
+      row: function (it) {
+        return {
+          title: it.title || '(без заглавие)',
+          sub: [it.type, it.deadline ? 'до ' + fmtDate(it.deadline) : '', it.active === false ? 'скрита' : 'активна']
+            .filter(Boolean).join(' · ')
+        };
+      }
     }
   };
 
@@ -471,7 +501,8 @@
       { n: (c.news || []).length, l: 'новини', sec: 'news' },
       { n: (c.classes || []).length, l: 'паралелки', sec: 'classes' },
       { n: (c.teachers || []).length, l: 'учители', sec: 'teachers' },
-      { n: (c.gallery || []).length, l: 'снимки', sec: 'gallery' }
+      { n: (c.gallery || []).length, l: 'снимки', sec: 'gallery' },
+      { n: (c.careers || []).filter(function (j) { return j.active !== false; }).length, l: 'обяви', sec: 'careers' }
     ];
     var upd = (c.meta && c.meta.updated) ? new Date(c.meta.updated).toLocaleString('bg-BG') : '—';
 
@@ -610,6 +641,45 @@
       ], 'Въпрос') + '</div>';
   }
 
+  function sectionCareers() {
+    if (state.editing && state.editing.list === 'careers') return renderList('careers');
+    return '<div class="card"><div class="card-head"><div><h3>Настройки на формата</h3>' +
+      '<p>Къде пристигат кандидатурите и какво вижда кандидатът на сайта.</p></div></div>' +
+      fieldsHtml([
+        { k: 'intro', label: 'Въведение на страницата', type: 'textarea', rows: 2 },
+        { k: 'webhook', label: 'Discord webhook адрес', type: 'text', hint: 'Discord → канал → Edit Channel → Integrations → Webhooks → Copy Webhook URL.' },
+        { k: 'contactEmail', label: 'Имейл за връзка', type: 'text', half: true },
+        { k: 'minAge', label: 'Минимална възраст', type: 'number', half: true, hint: 'Проверява се спрямо текущата година.' },
+        { k: 'note', label: 'Бележка под формата', type: 'textarea', rows: 2 }
+      ], 'site.careers') +
+      '<div class="notice" style="margin-top:2px">Всяка попълнена кандидатура се изпраща директно в Discord — не се пази в базата.</div>' +
+      '<button class="btn btn-ghost btn-sm" data-act="test-webhook" style="margin-top:10px">Изпрати тестово съобщение</button>' +
+      '</div>' + renderList('careers');
+  }
+
+  function testWebhook() {
+    var url = getPath(state.content, 'site.careers.webhook') || '';
+    if (!url) { toast('Първо поставете webhook адрес.', 'err'); return; }
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'ПИГ „Св. Климент Охридски“ · Кариери',
+        embeds: [{
+          title: '✅ Тестово съобщение от панела',
+          description: 'Връзката с Discord работи. Истинските кандидатури ще изглеждат по същия начин.',
+          color: 731983,
+          timestamp: new Date().toISOString()
+        }]
+      })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      toast('Тестовото съобщение е изпратено в Discord.', 'ok');
+    }).catch(function (e) {
+      toast('Неуспешно изпращане: ' + e.message, 'err');
+    });
+  }
+
   function sectionPublish() {
     var upd = (state.content.meta && state.content.meta.updated)
       ? new Date(state.content.meta.updated).toLocaleString('bg-BG') : '—';
@@ -657,7 +727,7 @@
   /* --------------------------------------------------------------- rendering */
   var TITLES = {
     dashboard: 'Табло', news: 'Новини', classes: 'Паралелки', teachers: 'Учители',
-    gallery: 'Галерия', documents: 'Документи', pages: 'Страници',
+    gallery: 'Галерия', documents: 'Документи', pages: 'Страници', careers: 'Кариери',
     general: 'Основни данни', home: 'Начало и херо', about: 'За училището',
     admission: 'Прием и въпроси', publish: 'Публикуване', account: 'Профил и достъп'
   };
@@ -667,6 +737,7 @@
     var sec = state.section;
 
     if (sec === 'dashboard') html = sectionDashboard();
+    else if (sec === 'careers') html = sectionCareers();
     else if (LISTS[sec]) html = renderList(sec);
     else if (sec === 'general') html = sectionGeneral();
     else if (sec === 'home') html = sectionHome();
@@ -792,6 +863,7 @@
       return;
     }
     if (act === 'export') { exportJson(); return; }
+    if (act === 'test-webhook') { testWebhook(); return; }
     if (act === 'publish') { publish(); return; }
     if (act === 'copy-rules') {
       navigator.clipboard.writeText(RULES).then(function () { toast('Правилата са копирани.', 'ok'); },

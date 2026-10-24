@@ -185,7 +185,7 @@
 .notice.ok { background: #f2faf5; border-color: #cfe9d8; color: #256b40; }
 .notice b { font-weight: 600; }
 
-.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.dash-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
 .dash-card {
   background: #fff; border: 1px solid #e3e7ee; border-radius: 8px; padding: 18px 20px;
   transition: box-shadow .16s, transform .16s; text-align: left; width: 100%;
