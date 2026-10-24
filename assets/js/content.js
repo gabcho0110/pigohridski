@@ -129,6 +129,8 @@ window.PIG_CONTENT = {
       "webhook": "https://discord.com/api/webhooks/1563635467960721460/JURX9c4X-isRwNSO0XUfYOfSf2xo87-SkRBba31oO19Ne4S6QBQh_qjUsEuzcW459IuW",
       "contactEmail": "karieri@pig-ohridski.bg",
       "minAge": 14,
+      "interviewNote": "Събеседването се провежда онлайн, в Discord сървъра на училището. Поканата идва по имейл и съдържа връзка към сървъра — нужни са ви микрофон и стабилна връзка.",
+      "discordInvite": "",
       "note": "Кандидатурите се разглеждат в срок до 10 работни дни. Одобрените кандидати получават покана за събеседване."
     },
 

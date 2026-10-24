@@ -789,6 +789,28 @@ li { margin-bottom: .35em; }
   background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
   padding: 28px; box-shadow: var(--shadow-sm);
 }
+
+/* Събеседване в Discord */
+.discord-note {
+  display: flex; gap: 13px; align-items: flex-start;
+  margin-top: 24px; padding: 16px 18px; max-width: 44ch;
+  background: rgba(88, 101, 242, .06);
+  border: 1px solid rgba(88, 101, 242, .22);
+  border-left: 3px solid #5865f2;
+  border-radius: 8px;
+}
+.discord-note .dn-ic {
+  flex: none; width: 34px; height: 34px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: #5865f2; color: #fff;
+}
+.discord-note .dn-body { min-width: 0; }
+.discord-note b {
+  display: block; font-family: var(--sans); font-size: 12px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: #3f4bbd; margin-bottom: 5px;
+}
+.discord-note p { margin: 0; font-size: 13.6px; line-height: 1.6; color: var(--ink-500); }
+.discord-note .btn { margin-top: 11px; }
 .fld-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .fld { margin-bottom: 14px; display: flex; flex-direction: column; }
 .fld label {

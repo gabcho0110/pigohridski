@@ -642,6 +642,27 @@
     '</article>';
   }
 
+  /* Събеседванията се провеждат в Discord сървъра на училището */
+  var DISCORD_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true">' +
+    '<path d="M19.3 5.3A16 16 0 0 0 15.4 4l-.3.6a12 12 0 0 0-6.2 0L8.6 4a16 16 0 0 0-3.9 1.3C2.2 9.1 1.5 12.8 1.9 16.4a16 16 0 0 0 4.8 2.4l.6-1a10 10 0 0 1-1.7-.8l.4-.3a11.5 11.5 0 0 0 9.9 0l.4.3c-.5.3-1.1.6-1.7.8l.6 1a16 16 0 0 0 4.8-2.4c.5-4.2-.6-7.8-2.7-11.1ZM8.7 14.4c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.8 1.9-1.7 1.9Zm6.6 0c-.9 0-1.7-.9-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.8 1.9-1.7 1.9Z"/></svg>';
+
+  var DISCORD_DEFAULT_NOTE = 'Събеседването се провежда онлайн, в Discord сървъра на училището. ' +
+    'Поканата идва по имейл и съдържа връзка към сървъра — нужни са ви микрофон и стабилна връзка.';
+
+  function discordNote(cfg) {
+    var text = cfg.interviewNote == null ? DISCORD_DEFAULT_NOTE : cfg.interviewNote;
+    var invite = String(cfg.discordInvite || '').trim();
+    if (invite && !/^https?:\/\//i.test(invite)) invite = '';
+    if (!text && !invite) return '';
+    return '<div class="discord-note">' +
+      '<span class="dn-ic">' + DISCORD_ICON + '</span>' +
+      '<div class="dn-body">' +
+        '<b>Събеседването е в Discord</b>' +
+        (text ? '<p>' + esc(text) + '</p>' : '') +
+        (invite ? '<a class="btn btn-ghost btn-sm" href="' + esc(invite) + '" target="_blank" rel="noopener">Влез в сървъра</a>' : '') +
+      '</div></div>';
+  }
+
   function viewCareers() {
     var cfg = S.careers || {};
     var jobs = activeJobs();
@@ -668,9 +689,11 @@
             '<p style="color:var(--ink-500);max-width:40ch">Попълнете четири полета — име, телефон, имейл и година на раждане. Кандидатурата пристига директно при нас.</p>' +
             '<ul class="apply-list">' +
               '<li>Отговаряме на всеки кандидат в срок до 10 работни дни.</li>' +
+              '<li>Събеседването се провежда в <b>Discord сървъра</b> на училището.</li>' +
               '<li>Минимална възраст за кандидатстване: <b>' + esc(minAge) + ' години</b>.</li>' +
               '<li>Данните се използват само за целите на подбора.</li>' +
             '</ul>' +
+            discordNote(cfg) +
             (cfg.note ? '<p class="small" style="color:var(--ink-400);max-width:40ch;margin-top:18px">' + esc(cfg.note) + '</p>' : '') +
           '</div>' +
           '<div class="apply-card">' +
@@ -860,7 +883,8 @@
         '<div class="apply-success">' +
           '<div class="tick">✓</div>' +
           '<h3>Благодарим' + (name ? ', ' + esc(name) : '') + '!</h3>' +
-          '<p>Кандидатурата ви пристигна. Ще се свържем с вас на посочения телефон или имейл в срок до 10 работни дни.</p>' +
+          '<p>Кандидатурата ви пристигна. Ще се свържем с вас на посочения телефон или имейл в срок до 10 работни дни. ' +
+            'Ако кандидатурата ви бъде одобрена, ще получите покана за събеседване в Discord сървъра на училището.</p>' +
           '<a class="btn btn-ghost btn-sm" href="#/karieri">Вижте другите позиции</a>' +
         '</div>';
       var card = document.querySelector('.apply-card');

@@ -669,6 +669,8 @@
         { k: 'webhook', label: 'Discord webhook адрес', type: 'text', hint: 'Discord → канал → Edit Channel → Integrations → Webhooks → Copy Webhook URL.' },
         { k: 'contactEmail', label: 'Имейл за връзка', type: 'text', half: true },
         { k: 'minAge', label: 'Минимална възраст', type: 'number', half: true, hint: 'Проверява се спрямо текущата година.' },
+        { k: 'interviewNote', label: 'Къде се провежда събеседването', type: 'textarea', rows: 3, hint: 'Показва се в блокчето „Събеседването е в Discord“ до формата. Оставете полето празно, за да скриете блокчето.' },
+        { k: 'discordInvite', label: 'Връзка към Discord сървъра', type: 'text', ph: 'https://discord.gg/…', hint: 'По избор. Ако е попълнена, под текста се показва бутон „Влез в сървъра“.' },
         { k: 'note', label: 'Бележка под формата', type: 'textarea', rows: 2 }
       ], 'site.careers') +
       '<div class="notice" style="margin-top:2px">Всяка попълнена кандидатура се изпраща директно в Discord — не се пази в базата.</div>' +
