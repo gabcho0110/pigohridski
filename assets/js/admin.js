@@ -558,7 +558,7 @@
         { k: 'name', label: 'Пълно име на училището', type: 'text' },
         { k: 'shortName', label: 'Кратко име', type: 'text', half: true },
         { k: 'city', label: 'Град', type: 'text', half: true },
-        { k: 'tagline', label: 'Подзаглавие', type: 'text', ph: 'Профилирана гимназия с традиции от 1894 година' },
+        { k: 'tagline', label: 'Подзаглавие', type: 'text', ph: 'Профилирана гимназия с традиции от 1903 година' },
         { k: 'founded', label: 'Година на основаване', type: 'number', half: true },
         { k: 'motto', label: 'Мото', type: 'text', half: true }
       ], s) + '</div>' +
