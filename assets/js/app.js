@@ -671,18 +671,20 @@
 
     var options = jobs.map(function (j) {
       return '<option value="' + esc(j.title) + '">' + esc(j.title) + '</option>';
-    }).join('') + '<option value="По собствена инициатива">По собствена инициатива</option>';
+    }).join('');
+    var hasJobs = jobs.length > 0;
+    var contactMail = cfg.contactEmail || 'karieri@pig-ohridski.bg';
 
     return pageHead('Кариери', cfg.intro || 'Отворени позиции в училището.',
       '<a href="#/">Начало</a><span>/</span>Кариери') +
       '<section class="section" style="padding-top:44px"><div class="wrap">' +
         (jobs.length
           ? '<div class="jobs">' + jobs.map(jobCard).join('') + '</div>'
-          : '<div class="empty">В момента няма отворени позиции. Можете да кандидатствате по собствена инициатива с формата по-долу.</div>') +
+          : '<div class="empty">В момента няма отворени позиции. Проверете отново след няколко седмици или ни пишете на ' +
+            '<a href="mailto:' + esc(contactMail) + '">' + esc(contactMail) + '</a>.</div>') +
       '</div></section>' +
 
-      '<section class="section section--cream" id="apply"><div class="wrap">' +
-        '<div class="apply-grid">' +
+      (hasJobs ? '<section class="section section--cream" id="apply"><div class="wrap"><div class="apply-grid">' +
           '<div>' +
             '<span class="kicker">Кандидатстване</span>' +
             '<h2>Изпратете кандидатура</h2>' +
@@ -740,7 +742,8 @@
             '</form>' +
           '</div>' +
         '</div>' +
-      '</div></section>';
+      '</div></section>'
+        : '');
   }
 
   function bindCareers() {
