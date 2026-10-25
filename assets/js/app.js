@@ -907,10 +907,58 @@
     });
   }
 
+  /* -------------------------------------------------------------- партньори */
+  function partnerHost(url) {
+    return String(url || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').split(/[/?#]/)[0];
+  }
+
+  function partnerCard(p) {
+    var url = String(p.url || '').trim();
+    var logo = p.logo
+      ? imgTag(p.logo, p.name, ' loading="lazy"')
+      : '<span class="partner-mono" aria-hidden="true">' + esc(initials(p.name)) + '</span>';
+
+    var inner =
+      '<span class="partner-logo">' + logo + '</span>' +
+      '<span class="partner-body">' +
+        '<span class="partner-name">' + esc(p.name) + '</span>' +
+        (p.description ? '<span class="partner-desc">' + esc(p.description) + '</span>' : '') +
+        (url
+          ? '<span class="partner-go">' + esc(partnerHost(url)) +
+            '<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '</span>'
+          : '') +
+      '</span>';
+
+    if (!url) {
+      return '<div class="partner-card partner-card--plain reveal">' + inner + '</div>';
+    }
+    return '<a class="partner-card reveal" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer"' +
+      ' title="' + esc(p.name) + ' — отваря ' + esc(partnerHost(url)) + ' в нов раздел">' + inner + '</a>';
+  }
+
+  function viewPartners() {
+    var list = (C.partners || []).filter(function (p) { return p && p.active !== false; });
+    var intro = String(S.partnersIntro || '').trim() ||
+      'Организациите, с които училището работи. Всяко лого е пряк път към сайта на партньора.';
+    var mail = S.email || 'info@pig-ohridski.bg';
+
+    return pageHead('Партньорства', intro,
+      '<a href="#/">Начало</a><span>/</span>Партньорства') +
+      '<section class="section"><div class="wrap">' +
+        (list.length
+          ? '<div class="partners-grid">' + list.map(partnerCard).join('') + '</div>' +
+            '<p class="partners-note">Искате да станете партньор на училището? Пишете ни на ' +
+            '<a href="mailto:' + esc(mail) + '">' + esc(mail) + '</a>.</p>'
+          : '<div class="empty">Списъкът с партньори предстои да бъде публикуван.</div>') +
+      '</div></section>' + ctaBand();
+  }
+
   function viewNotFound() {
     return '<section class="section"><div class="wrap" style="text-align:center;padding:80px 0">' +
       '<span class="kicker" style="justify-content:center">Грешка 404</span>' +
-      '<h1 style="color:var(--navy-800)">Страницата не е намерена</h1>' +
+      '<h1 style="color:var(--ink-900)">Страницата не е намерена</h1>' +
       '<p style="color:var(--ink-500);max-width:46ch;margin:0 auto 28px">Възможно е адресът да е сгрешен или страницата да е преместена.</p>' +
       '<a class="btn btn-primary" href="#/">Към началото</a>' +
       '</div></section>';
@@ -927,6 +975,7 @@
     '/galeria': { render: viewGallery, nav: '/galeria', title: 'Галерия' },
     '/dokumenti': { render: viewDocuments, nav: '/za-uchilishteto', title: 'Документи' },
     '/karieri': { render: viewCareers, nav: '/karieri', title: 'Кариери' },
+    '/partnerstva': { render: viewPartners, nav: '/partnerstva', title: 'Партньорства' },
     '/kontakti': { render: viewContacts, nav: '/kontakti', title: 'Контакти' }
   };
 

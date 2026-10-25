@@ -195,6 +195,7 @@
     pages: '<path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 11h7M9 15h7" stroke="currentColor" stroke-width="1.5"/>',
     gear: '<circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.5"/>',
     publish: '<path d="M12 19V6M12 6l-5 5M12 6l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+    link: '<path d="M10.2 13.8a4 4 0 0 1 0-5.6l2.3-2.3a4 4 0 0 1 5.6 5.6l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.8 10.2a4 4 0 0 1 0 5.6l-2.3 2.3a4 4 0 0 1-5.6-5.6l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
     account: '<rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" fill="none" stroke="currentColor" stroke-width="1.6"/>'
   };
 
@@ -207,6 +208,7 @@
     { id: 'gallery', label: 'Галерия', icon: 'gallery' },
     { id: 'documents', label: 'Документи', icon: 'docs' },
     { id: 'careers', label: 'Кариери', icon: 'jobs' },
+    { id: 'partners', label: 'Партньори', icon: 'link' },
     { id: 'pages', label: 'Страници', icon: 'pages' },
     { group: 'Настройки на сайта' },
     { id: 'general', label: 'Основни данни', icon: 'gear' },
@@ -463,6 +465,26 @@
             .filter(Boolean).join(' · ')
         };
       }
+    },
+    partners: {
+      title: 'Партньори', single: 'партньор', key: 'partners',
+      blank: function () {
+        return { id: uid('pa'), name: '', url: '', logo: '', description: '', active: true };
+      },
+      fields: [
+        { k: 'name', label: 'Име на партньора', type: 'text', ph: 'Софийски университет „Св. Климент Охридски“' },
+        { k: 'url', label: 'Връзка към сайта', type: 'text', ph: 'https://example.bg', hint: 'Адресът, на който води кликването върху картата. Ако е празно, картата не е активна.' },
+        { k: 'logo', label: 'Лого', type: 'image', hint: 'Квадратно или хоризонтално лого. Показва се в рамка 76×76 без изрязване.' },
+        { k: 'description', label: 'Кратко описание', type: 'textarea', rows: 3, hint: 'Едно-две изречения за съвместната работа.' },
+        { k: 'active', label: 'Видимост', type: 'checkbox', text: 'Показвай партньора на сайта' }
+      ],
+      row: function (it) {
+        return {
+          title: it.name || '(без име)',
+          sub: [(it.url || 'без връзка'), it.active === false ? 'скрит' : 'активен'].join(' · '),
+          img: it.logo, imgKey: 'logo'
+        };
+      }
     }
   };
 
@@ -488,8 +510,9 @@
 
     var rows = items.map(function (it, i) {
       var r = cfg.row(it);
+      var thumbKey = r.imgKey || (it.image !== undefined ? 'image' : 'photo');
       var thumb = r.img
-        ? '<img class="thumb" data-prev="' + cfg.key + '.' + i + '.' + (it.image !== undefined ? 'image' : 'photo') + '" alt="">'
+        ? '<img class="thumb" data-prev="' + cfg.key + '.' + i + '.' + thumbKey + '" alt="">'
         : '';
       return '<tr>' +
         '<td><div class="t-cell">' + thumb +
@@ -521,6 +544,7 @@
       { n: (c.classes || []).length, l: 'паралелки', sec: 'classes' },
       { n: (c.teachers || []).length, l: 'учители', sec: 'teachers' },
       { n: (c.gallery || []).length, l: 'снимки', sec: 'gallery' },
+      { n: (c.partners || []).length, l: 'партньори', sec: 'partners' },
       { n: (c.careers || []).filter(function (j) { return j.active !== false; }).length, l: 'обяви', sec: 'careers' }
     ];
     var upd = (c.meta && c.meta.updated) ? new Date(c.meta.updated).toLocaleString('bg-BG') : '—';
@@ -676,6 +700,19 @@
       '<div class="notice" style="margin-top:2px">Всяка попълнена кандидатура се изпраща директно в Discord — не се пази в базата.</div>' +
       '<button class="btn btn-ghost btn-sm" data-act="test-webhook" style="margin-top:10px">Изпрати тестово съобщение</button>' +
       '</div>' + renderList('careers');
+  }
+
+  function sectionPartners() {
+    if (state.editing && state.editing.list === 'partners') return renderList('partners');
+    return '<div class="card"><div class="card-head"><div><h3>Настройки на страницата</h3>' +
+      '<p>Какво вижда посетителят в началото на „Партньорства“.</p></div></div>' +
+      fieldsHtml([
+        { k: 'partnersIntro', label: 'Въведение', type: 'textarea', rows: 3, hint: 'Показва се под заглавието на страницата.' }
+      ], 'site') +
+      '<div class="notice">Всяка карта на сайта е пряк път — кликването отваря сайта на партньора в нов раздел. ' +
+      'Ако не сте попълнили „Връзка към сайта“, картата остава видима, но не е активна.</div>' +
+      '<a class="btn btn-ghost btn-sm" href="index.html#/partnerstva" target="_blank" rel="noopener" style="margin-top:10px">Отвори страницата</a>' +
+      '</div>' + renderList('partners');
   }
 
   function testWebhook() {
@@ -943,6 +980,7 @@
   var TITLES = {
     dashboard: 'Табло', news: 'Новини', classes: 'Паралелки', teachers: 'Учители',
     gallery: 'Галерия', documents: 'Документи', pages: 'Страници', careers: 'Кариери',
+    partners: 'Партньори',
     general: 'Основни данни', home: 'Начало и херо', about: 'За училището',
     admission: 'Прием и въпроси', users: 'Потребители', publish: 'Публикуване', account: 'Профил и достъп'
   };
@@ -953,6 +991,7 @@
 
     if (sec === 'dashboard') html = sectionDashboard();
     else if (sec === 'careers') html = sectionCareers();
+    else if (sec === 'partners') html = sectionPartners();
     else if (LISTS[sec]) html = renderList(sec);
     else if (sec === 'general') html = sectionGeneral();
     else if (sec === 'home') html = sectionHome();
