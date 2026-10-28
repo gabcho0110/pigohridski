@@ -277,14 +277,38 @@ favicon. Ако смените герба, достатъчно е да заме
 
 ## 7. Публикуване на сайта
 
-### GitHub Pages
+### Живият сайт
+
+**https://site.pigohridski.eu** — хостинг **Vercel**, автоматичен деплой при всеки `git push` към `main`.
+
+DNS при регистратора (jethosting, `ns1/ns2.eu109.jethosting.com`):
+
+```
+CNAME  site  368c275fd535dec5.vercel-dns-017.com
+```
+
+> Домейнът трябва да е добавен и във Vercel: *Project → Settings → Domains*.
+> Сертификатът (Let's Encrypt) се издава автоматично от Vercel.
+
+⚠️ **Ако сайтът не се отваря веднага** след промяна на DNS — това е кеш на резолвера, не грешка в сайта.
+TTL на записа е 1800 s (30 мин). Проверка: `dig @1.1.1.1 site.pigohridski.eu` трябва да върне
+`CNAME ... vercel-dns-017.com`. Изчистване на кеша на macOS:
+
+```
+sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+```
+
+Ако рутерът е DNS сървър (напр. `192.168.8.1`), неговият кеш се изчаква или се сменя DNS-а на
+`1.1.1.1` / `8.8.8.8` за устройството.
+
+### GitHub Pages (резервен вариант)
 
 1. `Settings` → `Pages` → *Source*: **Deploy from a branch**, Branch: **main**, папка **/ (root)**.
 2. След минута сайтът е на `https://gabcho0110.github.io/pigohridski/`.
 
-### Собствен домейн
+### Собствен домейн върху GitHub Pages
 
-`Settings` → `Pages` → *Custom domain* (например `pig-ohridski.bg`), след което в DNS:
+`Settings` → `Pages` → *Custom domain*, след което в DNS:
 
 ```
 A     @    185.199.108.153
