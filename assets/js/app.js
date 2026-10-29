@@ -181,18 +181,6 @@
       '</div>';
   }
 
-  function ctaBand() {
-    var a = S.admission || {};
-    return '' +
-      '<section class="section section--tight"><div class="wrap"><div class="cta-band reveal">' +
-        '<div>' +
-          '<h2>Прием ' + esc(a.year || '') + '</h2>' +
-          '<p>Четири паралелки, 104 места. Вижте сроковете и необходимите документи.</p>' +
-        '</div>' +
-        '<a class="btn btn-gold" href="#/priem">Условия за прием <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a>' +
-      '</div></div></section>';
-  }
-
   /* ------------------------------------------------------------------ views */
   function viewHome() {
     var news = sortedNews().slice(0, 3);
@@ -218,8 +206,7 @@
             '<h1>' + esc(S.heroTitle || '') + '</h1>' +
             '<p class="hero-lead">' + esc(S.heroLead || '') + '</p>' +
             '<div class="hero-actions">' +
-              '<a class="btn btn-primary" href="#/priem">Прием ' + esc((S.admission || {}).year || '') + '</a>' +
-              '<a class="btn btn-ghost" href="#/za-uchilishteto">За училището</a>' +
+              '<a class="btn btn-primary" href="#/za-uchilishteto">За училището</a>' +
             '</div>' +
             (S.motto ? '<div class="hero-motto">' + esc(S.motto) + '</div>' : '') +
           '</div>' +
@@ -301,9 +288,7 @@
             imgTag(g.image, g.title, ' loading="lazy"') +
             '<figcaption>' + esc(g.title) + '</figcaption></button>';
         }).join('') + '</div>' +
-      '</div></section>' : '') +
-
-      ctaBand();
+      '</div></section>' : '');
   }
 
   function viewAbout() {
@@ -358,52 +343,7 @@
             '<span class="link-arrow" style="margin-top:14px">Виж <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></span>' +
           '</a>';
         }).join('') + '</div>' +
-      '</div></section>' : '') +
-
-      ctaBand();
-  }
-
-  function viewAdmission() {
-    var a = S.admission || {};
-    var faq = S.faq || [];
-    return pageHead('Прием ' + (a.year || ''), 'Всичко необходимо за кандидатстване в осми клас — срокове, документи и отговори на най-честите въпроси.',
-      '<a href="#/">Начало</a><span>/</span>Прием') +
-      '<section class="section"><div class="wrap">' +
-        '<div class="grid grid-2" style="gap:52px;align-items:start">' +
-          '<div>' +
-            '<p class="about-lead">' + esc(a.intro || '') + '</p>' +
-            '<h3 style="margin-top:34px">Как протича приемът</h3>' +
-            '<div class="steps">' + (a.steps || []).map(function (s) {
-              return '<div class="step reveal"><span class="no"></span><div><h3>' + esc(s.title) + '</h3><p>' + esc(s.text) + '</p></div></div>';
-            }).join('') + '</div>' +
-          '</div>' +
-          '<div>' +
-            '<div class="value-card" style="padding:30px">' +
-              '<h3 style="margin-bottom:18px">Важни дати</h3>' +
-              '<ul class="dates-list">' + (a.dates || []).map(function (d) {
-                return '<li><span class="dt">' + esc(d.date) + '</span><span>' + esc(d.text) + '</span></li>';
-              }).join('') + '</ul>' +
-            '</div>' +
-            '<div class="value-card" style="padding:30px;margin-top:22px">' +
-              '<h3 style="margin-bottom:16px">Необходими документи</h3>' +
-              '<ul style="font-size:14.6px;color:var(--ink-500);margin:0;padding-left:18px">' +
-              (a.documents || []).map(function (d) { return '<li style="margin-bottom:8px">' + esc(d) + '</li>'; }).join('') +
-              '</ul>' +
-              (a.contact ? '<p style="font-size:13px;color:var(--ink-400);margin:18px 0 0;padding-top:16px;border-top:1px dashed var(--line)">' + esc(a.contact) + '</p>' : '') +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-      '</div></section>' +
-
-      (faq.length ?
-      '<section class="section section--cream"><div class="wrap">' +
-        '<div class="section-head"><span class="kicker">Въпроси</span><h2>Често задавани въпроси</h2></div>' +
-        '<div class="faq">' + faq.map(function (f) {
-          return '<details><summary>' + esc(f.q) + '</summary><div class="a">' + esc(f.a) + '</div></details>';
-        }).join('') + '</div>' +
-      '</div></section>' : '') +
-
-      ctaBand();
+      '</div></section>' : '');
   }
 
   function viewNews() {
@@ -471,7 +411,7 @@
           '</div>';
         }).join('') + '</div>'
         : '<div class="empty">Информацията за паралелките предстои да бъде публикувана.</div>') +
-      '</div></section>' + ctaBand();
+      '</div></section>';
   }
 
   function viewTeachers() {
@@ -581,10 +521,6 @@
               ? '<iframe src="' + esc(S.mapEmbed) + '" title="Карта" loading="lazy"></iframe>'
               : '<div class="empty" style="border:0">Картата не е конфигурирана.</div>') + '</div>' +
             (S.mapLink ? '<div style="margin-top:14px"><a class="link-arrow" href="' + esc(S.mapLink) + '" target="_blank" rel="noopener">Отвори в карта <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"></use></svg></a></div>' : '') +
-            '<div class="value-card" style="margin-top:26px">' +
-              '<h3 style="font-size:1.02rem">Приемна комисия</h3>' +
-              '<p style="font-size:14px">' + esc((S.admission || {}).contact || '') + '</p>' +
-            '</div>' +
           '</div>' +
         '</div>' +
       '</div></section>';
@@ -955,7 +891,7 @@
             '<p class="partners-note">Искате да станете партньор на училището? Пишете ни на ' +
             '<a href="mailto:' + esc(mail) + '">' + esc(mail) + '</a>.</p>'
           : '<div class="empty">Списъкът с партньори предстои да бъде публикуван.</div>') +
-      '</div></section>' + ctaBand();
+      '</div></section>';
   }
 
   function viewNotFound() {
@@ -971,7 +907,6 @@
   var ROUTES = {
     '/': { render: viewHome, nav: '/', title: 'Начало' },
     '/za-uchilishteto': { render: viewAbout, nav: '/za-uchilishteto', title: 'За училището' },
-    '/priem': { render: viewAdmission, nav: '/priem', title: 'Прием' },
     '/novini': { render: viewNews, nav: '/novini', title: 'Новини' },
     '/paralelki': { render: viewClasses, nav: '/za-uchilishteto', title: 'Паралелки и профили' },
     '/uchiteli': { render: viewTeachers, nav: '/za-uchilishteto', title: 'Учители' },

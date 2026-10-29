@@ -214,7 +214,6 @@
     { id: 'general', label: 'Основни данни', icon: 'gear' },
     { id: 'home', label: 'Начало и херо', icon: 'gear' },
     { id: 'about', label: 'За училището', icon: 'gear' },
-    { id: 'admission', label: 'Прием и въпроси', icon: 'gear' },
     { group: 'Система' },
     { id: 'users', label: 'Потребители', icon: 'teachers' },
     { id: 'publish', label: 'Публикуване', icon: 'publish' },
@@ -653,37 +652,6 @@
       ], 'Час') + '</div>';
   }
 
-  function sectionAdmission() {
-    var a = state.content.site.admission || {};
-    return '<div class="card"><div class="card-head"><h3>Прием</h3></div>' +
-      fieldsHtml([
-        { k: 'year', label: 'Учебна година', type: 'text', half: true, ph: '2026/2027' },
-        { k: 'contact', label: 'Контакт за прием', type: 'text', half: true },
-        { k: 'intro', label: 'Въведение', type: 'textarea', rows: 4 }
-      ], 'site.admission') + '</div>' +
-
-      '<div class="card"><div class="card-head"><div><h3>Стъпки</h3></div></div>' +
-      repeaterHtml('site.admission.steps', a.steps || [], [
-        { k: 'title', label: 'Заглавие', type: 'text' },
-        { k: 'text', label: 'Описание', type: 'textarea', rows: 2 }
-      ], 'Стъпка') + '</div>' +
-
-      '<div class="card"><div class="card-head"><div><h3>Важни дати</h3></div></div>' +
-      repeaterHtml('site.admission.dates', a.dates || [], [
-        { k: 'date', label: 'Дата', type: 'text', half: true, ph: '14.11.2026' },
-        { k: 'text', label: 'Събитие', type: 'text', half: true }
-      ], 'Дата') + '</div>' +
-
-      '<div class="card"><div class="card-head"><div><h3>Необходими документи</h3></div></div>' +
-      strListHtml('site.admission.documents', a.documents || [], 'Копие от удостоверението…') + '</div>' +
-
-      '<div class="card"><div class="card-head"><div><h3>Често задавани въпроси</h3></div></div>' +
-      repeaterHtml('site.faq', state.content.site.faq || [], [
-        { k: 'q', label: 'Въпрос', type: 'text' },
-        { k: 'a', label: 'Отговор', type: 'textarea', rows: 3 }
-      ], 'Въпрос') + '</div>';
-  }
-
   function sectionCareers() {
     if (state.editing && state.editing.list === 'careers') return renderList('careers');
     return '<div class="card"><div class="card-head"><div><h3>Настройки на формата</h3>' +
@@ -982,7 +950,7 @@
     gallery: 'Галерия', documents: 'Документи', pages: 'Страници', careers: 'Кариери',
     partners: 'Партньори',
     general: 'Основни данни', home: 'Начало и херо', about: 'За училището',
-    admission: 'Прием и въпроси', users: 'Потребители', publish: 'Публикуване', account: 'Профил и достъп'
+    users: 'Потребители', publish: 'Публикуване', account: 'Профил и достъп'
   };
 
   function renderSection() {
@@ -996,7 +964,6 @@
     else if (sec === 'general') html = sectionGeneral();
     else if (sec === 'home') html = sectionHome();
     else if (sec === 'about') html = sectionAbout();
-    else if (sec === 'admission') html = sectionAdmission();
     else if (sec === 'users') html = sectionUsers();
     else if (sec === 'publish') html = sectionPublish();
     else if (sec === 'account') html = sectionAccount();
