@@ -894,6 +894,65 @@
       '</div></section>';
   }
 
+  /* -------------------------------------------------------- извънкласни дейности */
+  function activityCard(a) {
+    var files = (a.files || []).filter(function (f) { return f.name; });
+    var fileList = files.length
+      ? '<div class="act-files">' +
+          '<span class="act-files-label">Презентации и материали:</span>' +
+          '<div class="act-file-list">' + files.map(function (f) {
+            var url = String(f.url || '').trim();
+            var ext = /\.pdf$/i.test(url) ? 'PDF'
+              : (/\.pptx?$/i.test(url) ? 'PPT'
+              : (/\.docx?$/i.test(url) ? 'DOC'
+              : (/\.html?$/i.test(url) ? 'HTML'
+              : 'FILE')));
+            if (url) {
+              return '<a class="act-file" href="' + esc(url) + '" target="_blank" rel="noopener" download>' +
+                '<span class="act-file-icon">' + esc(ext) + '</span>' +
+                '<span class="act-file-name">' + esc(f.name) + '</span>' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+              '</a>';
+            }
+            return '<span class="act-file act-file--pending">' +
+              '<span class="act-file-icon">' + esc(ext) + '</span>' +
+              '<span class="act-file-name">' + esc(f.name) + '</span>' +
+              '<span class="act-file-pending">очаква качване</span>' +
+            '</span>';
+          }).join('') + '</div>' +
+        '</div>'
+      : '';
+
+    return '<article class="act-card reveal">' +
+      '<div class="act-body">' +
+        '<div class="act-top">' +
+          (a.date ? '<span class="tag tag--gold">' + esc(fmtDate(a.date)) + '</span>' : '') +
+        '</div>' +
+        '<h3>' + esc(a.title) + '</h3>' +
+        '<div class="act-meta">' +
+          (a.organizer ? '<span class="act-organizer"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-3.6 3.8-5.2 7-5.2s5.8 1.6 7 5.2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg> Организатор: <b>' + esc(a.organizer) + '</b></span>' : '') +
+        '</div>' +
+        (a.participants ? '<div class="act-participants"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19c1-3 3.3-4.3 6-4.3s5 1.3 6 4.3M14 19c1-2.2 2.8-3.2 5-3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> <b>Участници:</b> ' + esc(a.participants) + '</div>' : '') +
+        (a.description ? '<p class="act-desc">' + esc(a.description) + '</p>' : '') +
+        fileList +
+      '</div>' +
+    '</article>';
+  }
+
+  function viewActivities() {
+    var list = (C.activities || []).filter(function (a) { return a && a.active !== false; });
+    var intro = String(S.activitiesIntro || '').trim() ||
+      'Училищният живот не свършва с последния звънец. Тук се публикуват извънкласните дейности — участниците, организатора и материалите от всяко събитие.';
+
+    return pageHead('Извънкласни дейности', intro,
+      '<a href="#/">Начало</a><span>/</span>Извънкласни дейности') +
+      '<section class="section"><div class="wrap">' +
+        (list.length
+          ? '<div class="act-list">' + list.map(activityCard).join('') + '</div>'
+          : '<div class="empty">Все още няма публикувани извънкласни дейности.</div>') +
+      '</div></section>';
+  }
+
   function viewNotFound() {
     return '<section class="section"><div class="wrap" style="text-align:center;padding:80px 0">' +
       '<span class="kicker" style="justify-content:center">Грешка 404</span>' +
@@ -913,6 +972,7 @@
     '/galeria': { render: viewGallery, nav: '/galeria', title: 'Галерия' },
     '/dokumenti': { render: viewDocuments, nav: '/za-uchilishteto', title: 'Документи' },
     '/karieri': { render: viewCareers, nav: '/karieri', title: 'Кариери' },
+    '/izvanklasni': { render: viewActivities, nav: '/izvanklasni', title: 'Извънкласни дейности' },
     '/partnerstva': { render: viewPartners, nav: '/partnerstva', title: 'Партньорства' },
     '/kontakti': { render: viewContacts, nav: '/kontakti', title: 'Контакти' }
   };

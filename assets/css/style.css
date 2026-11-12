@@ -938,3 +938,70 @@ li { margin-bottom: .35em; }
   .partner-card { padding: 16px; gap: 14px; }
   .partner-logo { width: 64px; height: 64px; border-radius: 10px; }
 }
+
+/* ==========================================================================
+   Извънкласни дейности
+   ========================================================================== */
+.act-list { display: flex; flex-direction: column; gap: 22px; }
+
+.act-card {
+  background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 28px 30px; transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.act-card:hover { border-color: rgba(217, 183, 109, .35); box-shadow: var(--shadow-sm); }
+.act-body > h3 { font-size: 1.2rem; margin: 12px 0 14px; color: var(--ink-900); }
+.act-top { display: flex; gap: 10px; flex-wrap: wrap; }
+.act-meta {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  font-size: 13.5px; color: var(--ink-500); margin-bottom: 6px;
+}
+.act-meta svg { opacity: .6; flex: none; }
+.act-organizer { display: inline-flex; align-items: center; gap: 6px; }
+.act-organizer b { color: var(--ink-700); font-weight: 600; }
+.act-participants {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 13.5px; color: var(--ink-500); line-height: 1.55;
+  margin-bottom: 12px;
+}
+.act-participants svg { margin-top: 2px; opacity: .6; flex: none; }
+.act-participants b { color: var(--ink-700); font-weight: 600; }
+.act-desc { font-size: 14.6px; color: var(--ink-500); line-height: 1.65; margin: 0 0 18px; }
+
+.act-files { margin-top: 4px; padding-top: 18px; border-top: 1px dashed var(--line); }
+.act-files-label {
+  display: block; font-size: 12.5px; font-weight: 600; letter-spacing: .02em;
+  color: var(--ink-400); margin-bottom: 12px; text-transform: uppercase;
+}
+.act-file-list { display: flex; flex-direction: column; gap: 8px; }
+
+.act-file {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--cream-100); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 14px; font-size: 13.5px; color: var(--ink-700); text-decoration: none;
+  transition: border-color .2s var(--ease), background .2s var(--ease);
+  max-width: 100%;
+}
+.act-file:hover {
+  border-color: rgba(217, 183, 109, .4); background: var(--cream-200); color: var(--ink-900);
+}
+.act-file svg { flex: none; opacity: .5; }
+.act-file:hover svg { opacity: .8; color: var(--gold-300); }
+
+.act-file-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 38px; height: 24px; border-radius: 4px;
+  background: rgba(217, 183, 109, .12); color: var(--gold-300);
+  font-size: 10px; font-weight: 700; letter-spacing: .05em; padding: 0 6px;
+}
+.act-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-file-pending {
+  font-size: 11px; color: var(--ink-400); font-style: italic; white-space: nowrap;
+}
+.act-file--pending { cursor: default; opacity: .65; }
+.act-file--pending:hover { border-color: var(--line); background: var(--cream-100); }
+
+@media (max-width: 700px) {
+  .act-card { padding: 20px; }
+  .act-body > h3 { font-size: 1.08rem; }
+  .act-meta { gap: 12px; }
+}

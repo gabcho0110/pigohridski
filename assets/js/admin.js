@@ -196,7 +196,8 @@
     gear: '<circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.5"/>',
     publish: '<path d="M12 19V6M12 6l-5 5M12 6l5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
     link: '<path d="M10.2 13.8a4 4 0 0 1 0-5.6l2.3-2.3a4 4 0 0 1 5.6 5.6l-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.8 10.2a4 4 0 0 1 0 5.6l-2.3 2.3a4 4 0 0 1-5.6-5.6l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-    account: '<rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    account: '<rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+    activity: '<path d="M12 3v18M3 8h18M3 16h18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>'
   };
 
   var NAV = [
@@ -209,6 +210,7 @@
     { id: 'documents', label: 'Документи', icon: 'docs' },
     { id: 'careers', label: 'Кариери', icon: 'jobs' },
     { id: 'partners', label: 'Партньори', icon: 'link' },
+    { id: 'activities', label: 'Дейности', icon: 'activity' },
     { id: 'pages', label: 'Страници', icon: 'pages' },
     { group: 'Настройки на сайта' },
     { id: 'general', label: 'Основни данни', icon: 'gear' },
@@ -484,6 +486,32 @@
           img: it.logo, imgKey: 'logo'
         };
       }
+    },
+    activities: {
+      title: 'Извънкласни дейности', single: 'дейност', key: 'activities',
+      blank: function () {
+        return { id: uid('a'), title: '', date: today(), organizer: '', participants: '', description: '', files: [], active: true };
+      },
+      fields: [
+        { k: 'title', label: 'Заглавие', type: 'text', ph: 'Клуб „Дебати“ — Среща с отбор от СУ' },
+        { k: 'date', label: 'Дата', type: 'date', half: true },
+        { k: 'organizer', label: 'Организатор', type: 'text', half: true, ph: 'Елена Ковачева' },
+        { k: 'participants', label: 'Участници', type: 'text', ph: 'Виктория Алексиева (10.А), Борис Начев (11.Б)' },
+        { k: 'description', label: 'Описание', type: 'textarea', rows: 4 },
+        { k: 'active', label: 'Видимост', type: 'checkbox', text: 'Показвай на сайта' }
+      ],
+      row: function (it) {
+        var files = (it.files || []).filter(function (f) { return f.name; });
+        return {
+          title: it.title || '(без заглавие)',
+          sub: [
+            fmtDate(it.date),
+            it.organizer ? 'орг: ' + it.organizer : '',
+            files.length ? files.length + ' файл' + (files.length === 1 ? '' : 'а') : '',
+            it.active === false ? 'скрита' : 'активна'
+          ].filter(Boolean).join(' · ')
+        };
+      }
     }
   };
 
@@ -544,6 +572,7 @@
       { n: (c.teachers || []).length, l: 'учители', sec: 'teachers' },
       { n: (c.gallery || []).length, l: 'снимки', sec: 'gallery' },
       { n: (c.partners || []).length, l: 'партньори', sec: 'partners' },
+      { n: (c.activities || []).filter(function (a) { return a.active !== false; }).length, l: 'дейности', sec: 'activities' },
       { n: (c.careers || []).filter(function (j) { return j.active !== false; }).length, l: 'обяви', sec: 'careers' }
     ];
     var upd = (c.meta && c.meta.updated) ? new Date(c.meta.updated).toLocaleString('bg-BG') : '—';
@@ -681,6 +710,58 @@
       'Ако не сте попълнили „Връзка към сайта“, картата остава видима, но не е активна.</div>' +
       '<a class="btn btn-ghost btn-sm" href="index.html#/partnerstva" target="_blank" rel="noopener" style="margin-top:10px">Отвори страницата</a>' +
       '</div>' + renderList('partners');
+  }
+
+  function sectionActivities() {
+    /* Режим на редакция — рендерираме ръчно, за да включим repeater за файлове */
+    if (state.editing && state.editing.list === 'activities') {
+      var cfg = LISTS.activities;
+      var items = state.content.activities || [];
+      var idx = state.editing.index;
+      var item = items[idx];
+      if (!item) { state.editing = null; return sectionActivities(); }
+
+      var files = item.files || [];
+      var fileRepeater = '<div class="card" style="margin-top:16px"><div class="card-head"><div><h3>Презентации и материали</h3>' +
+        '<p>Файлове за изтегляне от страницата на дейността. Качете файла в папка <code>uploads/</code> (или външна връзка) и поставете адреса.</p></div></div>' +
+        (files.length ? files.map(function (f, i) {
+          return '<div class="rep-item">' +
+            '<div class="rep-head"><span class="rep-idx">Файл ' + (i + 1) + '</span>' +
+            '<div class="rep-tools">' +
+              '<button type="button" class="icon-btn" data-act="rep-up" data-path="activities.' + idx + '.files" data-i="' + i + '" title="Нагоре">↑</button>' +
+              '<button type="button" class="icon-btn" data-act="rep-down" data-path="activities.' + idx + '.files" data-i="' + i + '" title="Надолу">↓</button>' +
+              '<button type="button" class="icon-btn danger" data-act="rep-del" data-path="activities.' + idx + '.files" data-i="' + i + '" title="Изтрий">✕</button>' +
+            '</div></div>' +
+            fieldHtml({ k: 'name', label: 'Име на файла', type: 'text', ph: 'Презентация на отбора.pptx' }, 'activities.' + idx + '.files.' + i + '.name') +
+            fieldHtml({ k: 'url', label: 'Връзка към файла', type: 'text', ph: 'uploads/prezentaciq.pptx или https://…', hint: 'Ако е празно, файлът се показва като „очаква качване“.' }, 'activities.' + idx + '.files.' + i + '.url') +
+          '</div>';
+        }).join('') : '<div class="rep-empty">Все още няма добавени файлове.</div>') +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act="act-file-add" data-idx="' + idx + '" style="margin-top:6px">＋ Добави файл</button>' +
+        '</div>';
+
+      return '<div class="card">' +
+        '<div class="card-head"><div><h3>' + (idx >= 0 ? 'Редакция на ' + esc(cfg.single) : 'Нова ' + esc(cfg.single)) + '</h3>' +
+        '<p>Промените се запазват в паметта — натиснете „Публикувай“, за да станат видими на сайта.</p></div>' +
+        '<button class="btn btn-ghost btn-sm" data-act="list-back">← Назад</button></div>' +
+        fieldsHtml(cfg.fields, cfg.key + '.' + idx) +
+        fileRepeater +
+        '<div class="f-row" style="margin-top:8px">' +
+          '<button class="btn btn-primary btn-sm" data-act="list-back">Готово</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="list-del" data-list="activities" data-i="' + idx + '">Изтрий</button>' +
+        '</div>' +
+        '</div>';
+    }
+
+    /* Списък */
+    return '<div class="card"><div class="card-head"><div><h3>Настройки на страницата</h3>' +
+      '<p>Какво вижда посетителят в началото на „Извънкласни дейности“.</p></div></div>' +
+      fieldsHtml([
+        { k: 'activitiesIntro', label: 'Въведение', type: 'textarea', rows: 3, hint: 'Показва се под заглавието на страницата.' }
+      ], 'site') +
+      '<div class="notice">Всяка дейност може да има организатор, участници и прикачени файлове (презентации, протоколи и др.). ' +
+      'Файловете се показват като бутони за изтегляне на сайта.</div>' +
+      '<a class="btn btn-ghost btn-sm" href="index.html#/izvanklasni" target="_blank" rel="noopener" style="margin-top:10px">Отвори страницата</a>' +
+      '</div>' + renderList('activities');
   }
 
   function testWebhook() {
@@ -948,7 +1029,7 @@
   var TITLES = {
     dashboard: 'Табло', news: 'Новини', classes: 'Паралелки', teachers: 'Учители',
     gallery: 'Галерия', documents: 'Документи', pages: 'Страници', careers: 'Кариери',
-    partners: 'Партньори',
+    partners: 'Партньори', activities: 'Извънкласни дейности',
     general: 'Основни данни', home: 'Начало и херо', about: 'За училището',
     users: 'Потребители', publish: 'Публикуване', account: 'Профил и достъп'
   };
@@ -960,6 +1041,7 @@
     if (sec === 'dashboard') html = sectionDashboard();
     else if (sec === 'careers') html = sectionCareers();
     else if (sec === 'partners') html = sectionPartners();
+    else if (sec === 'activities') html = sectionActivities();
     else if (LISTS[sec]) html = renderList(sec);
     else if (sec === 'general') html = sectionGeneral();
     else if (sec === 'home') html = sectionHome();
@@ -1110,6 +1192,15 @@
     if (act === 'logout') { $('#logoutBtn').click(); return; }
     if (act === 'quick-news') { go('news'); setTimeout(function () { var b = document.querySelector('[data-act="list-add"][data-list="news"]'); if (b) b.click(); }, 30); return; }
     if (act === 'quick-gallery') { go('gallery'); setTimeout(function () { var b = document.querySelector('[data-act="list-add"][data-list="gallery"]'); if (b) b.click(); }, 30); return; }
+    if (act === 'act-file-add') {
+      var aIdx = parseInt(btn.getAttribute('data-idx'), 10);
+      var arr4 = state.content.activities;
+      if (!arr4 || !arr4[aIdx]) return;
+      arr4[aIdx].files = arr4[aIdx].files || [];
+      arr4[aIdx].files.push({ name: '', url: '' });
+      markDirty(); renderSection();
+      return;
+    }
   });
 
   /* --------------------------------------------------------------- images */
